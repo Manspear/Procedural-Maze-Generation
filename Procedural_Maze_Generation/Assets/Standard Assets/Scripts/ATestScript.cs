@@ -100,6 +100,39 @@ public class ATestScript : MonoBehaviour {
         Random.InitState(seedNumber);
     }
 
+    GameObject[] visualizedMaze;
+
+    void visualizeMaze()
+    {
+        foreach (GameObject obj in visualizedMaze)
+        {
+            Destroy(obj);
+        }
+
+        Vector3 wallPos = new Vector3(0, 0, 0);
+        int wallOffset = 0;
+        for (int i = 0; i < grid.GetLength(0); i++)
+        {
+            for (int j = 0; j < grid.GetLength(1); j++)
+            {
+                print("i: " + i);
+                print("j: " + j);
+                print("offset: " + wallOffset);
+                print(4 * gridX * gridZ);
+                wallPos.Set(posOffset * i, 0, posOffset * j);
+                if (grid[i, j].WestWall)
+                    visualizedMaze[wallOffset] = Instantiate(westWall, wallPos, transform.rotation);
+                if (grid[i, j].SouthWall)
+                    visualizedMaze[wallOffset + 1] = Instantiate(southWall, wallPos, transform.rotation);
+                if (grid[i, j].NorthWall)
+                    visualizedMaze[wallOffset + 2] = Instantiate(northWall, wallPos, transform.rotation);
+                if (grid[i, j].EastWall)
+                    visualizedMaze[wallOffset + 3] = Instantiate(eastWall, wallPos, transform.rotation);
+                wallOffset += 4;
+            }
+        }
+    }
+
     void shuffleDirections(List<direction> directionList)
     {
         //Shuffles directionList
@@ -154,41 +187,6 @@ public class ATestScript : MonoBehaviour {
                     grid[gridXPos + dir.XMod, gridZPos + dir.ZMod].WestWall = false;
                 }
                 recursiveBackTrack(gridXPos + dir.XMod, gridZPos + dir.ZMod);
-            }
-        }
-    }
-
-    GameObject[] visualizedMaze;
-
-
-
-    void visualizeMaze()
-    {
-        foreach (GameObject obj in visualizedMaze)
-        {
-            Destroy(obj);
-        }
-
-        Vector3 wallPos = new Vector3(0,0,0);
-        int wallOffset = 0;
-        for (int i = 0; i < grid.GetLength(0); i++)
-        {
-            for (int j = 0; j < grid.GetLength(1); j++)
-            {
-                print("i: " + i);
-                print("j: " + j);
-                print("offset: " + wallOffset);
-                print(4 * gridX * gridZ);
-                wallPos.Set(posOffset * i, 0, posOffset * j);
-                if (grid[i, j].WestWall)
-                    visualizedMaze[wallOffset]     = Instantiate(westWall, wallPos, transform.rotation);
-                if (grid[i, j].SouthWall)
-                    visualizedMaze[wallOffset + 1] = Instantiate(southWall, wallPos, transform.rotation);
-                if (grid[i, j].NorthWall)
-                    visualizedMaze[wallOffset + 2] = Instantiate(northWall, wallPos, transform.rotation);
-                if (grid[i, j].EastWall)
-                    visualizedMaze[wallOffset + 3] = Instantiate(eastWall, wallPos, transform.rotation);
-                wallOffset += 4;
             }
         }
     }

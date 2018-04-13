@@ -170,6 +170,9 @@ public class ATestScript : MonoBehaviour {
         {
             print(cnt);
             cnt++;
+
+            print(cnt);
+            cnt++;
         }
     }
 }

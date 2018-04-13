@@ -1,51 +1,27 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using System.IO;
 
 
 public class ATestScript : MonoBehaviour {
-    private int[,] arrlok = new int[5, 5] { {0,0,0,0,1}, { 0, 0, 0, 1, 0 }, { 0, 0, 1, 0, 0 },{ 0, 1, 0, 0, 0 }, { 1, 0, 0, 0, 0 } };
-    Vector3 cubeInstancePos;
-    float posOffset = 2;
-    public GameObject cube;
-    // Use this for initialization
-    void Start () {
 
-        startRecursiveBacktracker();
-        visualizeMaze();
-        cubeInstancePos.Set(0, 0, 0);
-        //GameObject aids = (GameObject)Instantiate(cube, cubeInstancePos, transform.rotation);
-        for (int i = 0; i < arrlok.GetLength(0); i++)
-        {
-            for (int j = 0; j < arrlok.GetLength(1); j++)
-            {
-                if (arrlok[i, j] == 1)
-                {
-                    cubeInstancePos.Set(posOffset * i, posOffset * j, 0);
-                    GameObject anObject = (GameObject)Instantiate(cube, cubeInstancePos, transform.rotation);
-                }
-            }   
-        }
-    }
-    //support both walls and corridors. Have ability to GET multidimensional array from somewhere else. 
-	
-	// Update is called once per frame
-	void Update () {
-        
-	}
+    float posOffset = 8.6f;
+    public GameObject northWall;
+    public GameObject southWall;
+    public GameObject westWall;
+    public GameObject eastWall;
 
-
-    public static int NONE = 0;
-    public static int NORTH = 1;
-    public static int SOUTH = 2;
-    public static int WEST = 4;
-    public static int EAST = 8;
-
-    public static int gridX = 10;
-    public static int gridY = 10;
-
-    public static List<int> directionList = new List<int>();
+    public int gridX = 5;
+    public int gridZ = 10;
     public static cell[,] grid;
+    public int seedNumber = 0;
+    public bool randomSeed = false;
+
+    private static direction NORTHDir = new direction();
+    private static direction SOUTHDir = new direction();
+    private static direction EASTDir = new direction();
+    private static direction WESTDir = new direction();
 
     public class cell
     {
@@ -56,24 +32,52 @@ public class ATestScript : MonoBehaviour {
         public bool WestWall = true;
     }
 
-    void shuffleDirections()
+    public class direction
     {
-        //Shuffles directionList
-        int n = directionList.Count;
-        while (n > 1)
-        {
-            int k = Random.Range(0, n);
-            n--;
-            int value = directionList[k];
-            directionList[k] = directionList[n];
-            directionList[n] = value;
-        }
+        public int XMod, ZMod;
     }
 
-    void startRecursiveBacktracker()
+    // Use this for initialization
+    void Start () {
+        
+        visualizedMaze = new GameObject[4 * gridX * gridZ];
+        //recursiveBackTrack(0, 0);
+        //visualizeMaze();
+
+    }
+    bool flipFlop = true;
+    void Update()
+    {
+        if (Input.GetKeyDown("space"))
+        {
+            InitializeMazeCreationVariables();
+            recursiveBackTrack(0, 0);
+            visualizeMaze();
+        }
+        if (Input.GetKeyDown("f"))
+        {
+            
+            if (flipFlop)
+            {
+                Vector3 aods = new Vector3(-20, -20, -20);
+                visualizedMaze[0] = Instantiate(eastWall, aods, transform.rotation);
+                flipFlop = false;
+            }
+            else
+            {
+                foreach (GameObject obj in visualizedMaze)
+                {
+                    Destroy(obj);
+                }
+                //Destroy(visualizedMaze[1]);
+                flipFlop = true;
+            }
+        }
+    }
+    void InitializeMazeCreationVariables()
     {
         //initializing grid
-        grid = new cell[gridX, gridY];
+        grid = new cell[gridX, gridZ];
         for (int i = 0; i < grid.GetLength(0); i++)
         {
             for (int j = 0; j < grid.GetLength(1); j++)
@@ -82,97 +86,110 @@ public class ATestScript : MonoBehaviour {
             }
         }
 
-        //initializing list of directions 
-        directionList.Add(NORTH);
-        directionList.Add(SOUTH);
-        directionList.Add(WEST);
-        directionList.Add(EAST);
-
-        Random.InitState(51267735);
-
-        recursiveBackTrack(NONE, 0, 0);
+        NORTHDir.XMod = -1;
+        NORTHDir.ZMod = 0;
+        SOUTHDir.XMod = 1;
+        SOUTHDir.ZMod = 0;
+        WESTDir.XMod = 0;
+        WESTDir.ZMod = -1;
+        EASTDir.XMod = 0;
+        EASTDir.ZMod = 1;
+ 
+        if (randomSeed)
+            seedNumber = Random.Range(0, 999999999);
+        Random.InitState(seedNumber);
     }
 
-    void recursiveBackTrack(int fromDirection, int gridXPos, int gridYPos)
+    void shuffleDirections(List<direction> directionList)
     {
-        shuffleDirections();
+        //Shuffles directionList
+        int n = directionList.Count;
+        while (n > 1)
+        {
+            int k = Random.Range(0, n);
+            n--;
+            direction value = directionList[k];
+            directionList[k] = directionList[n];
+            directionList[n] = value;
+        }
+    }
+
+    void recursiveBackTrack(int gridXPos, int gridZPos)
+    {
+        List<direction> directionList = new List<direction>();
+        //initializing list of directions 
+        directionList.Add(NORTHDir);
+        directionList.Add(SOUTHDir);
+        directionList.Add(WESTDir);
+        directionList.Add(EASTDir);
+
+        shuffleDirections(directionList);
 
         //set current cell as visited
-        grid[gridXPos, gridYPos].Visited = true;
-
-        //remove wall from direction traveled from
-        if (fromDirection == NORTH)
-            grid[gridXPos, gridYPos].NorthWall = false;
-        if (fromDirection == SOUTH)
-            grid[gridXPos, gridYPos].SouthWall = false;
-        if (fromDirection == WEST)
-            grid[gridXPos, gridYPos].WestWall = false;
-        if (fromDirection == EAST)
-            grid[gridXPos, gridYPos].EastWall = false;
+        grid[gridXPos, gridZPos].Visited = true;
 
         //Now loop through neighbours. If found neighbour, call self, with neighbours position
-        foreach (int dir in directionList)
+        foreach (direction dir in directionList)
         {
-            //north is +Y, south is -Y, west is -X, east is +X
-
-            if (dir == NORTH)
+            if ((gridXPos + dir.XMod >= 0 && gridXPos + dir.XMod < gridX) && (gridZPos + dir.ZMod >= 0 && gridZPos + dir.ZMod < gridZ) && grid[gridXPos + dir.XMod, gridZPos + dir.ZMod].Visited == false)
             {
-                if (gridYPos + 1 >= gridY)
-                { }
-                else if (grid[gridXPos, (gridYPos + 1)].Visited == true)
-                { }
-                else
+                if (dir == NORTHDir)
                 {
-                    recursiveBackTrack(SOUTH, gridXPos, gridYPos + 1);
+                    grid[gridXPos, gridZPos].NorthWall = false;
+                    grid[gridXPos + dir.XMod, gridZPos + dir.ZMod].SouthWall = false;
                 }
-            }
-            else if (dir == SOUTH)
-            {
-                if (gridYPos - 1 < 0 )
-                { }
-                else if (grid[gridXPos, (gridYPos - 1)].Visited == true)
-                { }
-                else
+                if (dir == SOUTHDir)
                 {
-                    recursiveBackTrack(NORTH, gridXPos, gridYPos - 1);
+                    grid[gridXPos, gridZPos].SouthWall = false;
+                    grid[gridXPos + dir.XMod, gridZPos + dir.ZMod].NorthWall = false;
                 }
-            }
-            else if (dir == WEST)
-            {
-                if (gridXPos - 1 < 0)
-                { }
-                else if (grid[gridXPos - 1, gridYPos].Visited == true)
-                { }
-                else
+                if (dir == WESTDir)
                 {
-                    recursiveBackTrack(EAST, gridXPos - 1, gridYPos);
+                    grid[gridXPos, gridZPos].WestWall = false;
+                    grid[gridXPos + dir.XMod, gridZPos + dir.ZMod].EastWall = false;
                 }
-            }
-            else if (dir == EAST)
-            {
-                if (gridXPos + 1 >= gridX)
+                if (dir == EASTDir)
                 {
+                    grid[gridXPos, gridZPos].EastWall = false;
+                    grid[gridXPos + dir.XMod, gridZPos + dir.ZMod].WestWall = false;
                 }
-                else if (grid[gridXPos + 1, gridYPos].Visited == true)
-                { }
-                else
-                {
-                    recursiveBackTrack(WEST, gridXPos + 1, gridYPos);
-                }
+                recursiveBackTrack(gridXPos + dir.XMod, gridZPos + dir.ZMod);
             }
         }
     }
 
+    GameObject[] visualizedMaze;
+
+
+
     void visualizeMaze()
     {
-        int cnt = 0;
-        foreach (cell cel in grid)
+        foreach (GameObject obj in visualizedMaze)
         {
-            print(cnt);
-            cnt++;
+            Destroy(obj);
+        }
 
-            print(cnt);
-            cnt++;
+        Vector3 wallPos = new Vector3(0,0,0);
+        int wallOffset = 0;
+        for (int i = 0; i < grid.GetLength(0); i++)
+        {
+            for (int j = 0; j < grid.GetLength(1); j++)
+            {
+                print("i: " + i);
+                print("j: " + j);
+                print("offset: " + wallOffset);
+                print(4 * gridX * gridZ);
+                wallPos.Set(posOffset * i, 0, posOffset * j);
+                if (grid[i, j].WestWall)
+                    visualizedMaze[wallOffset]     = Instantiate(westWall, wallPos, transform.rotation);
+                if (grid[i, j].SouthWall)
+                    visualizedMaze[wallOffset + 1] = Instantiate(southWall, wallPos, transform.rotation);
+                if (grid[i, j].NorthWall)
+                    visualizedMaze[wallOffset + 2] = Instantiate(northWall, wallPos, transform.rotation);
+                if (grid[i, j].EastWall)
+                    visualizedMaze[wallOffset + 3] = Instantiate(eastWall, wallPos, transform.rotation);
+                wallOffset += 4;
+            }
         }
     }
 }

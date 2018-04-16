@@ -171,7 +171,7 @@ public class ATestScript : MonoBehaviour {
                     grid[gridXPos, gridZPos].NorthWall = false;
                     grid[gridXPos + dir.XMod, gridZPos + dir.ZMod].SouthWall = false;
                 }
-                if (dir == SOUTHDir)
+                if (dir == SOUTHDir) //my hombre
                 {
                     grid[gridXPos, gridZPos].SouthWall = false;
                     grid[gridXPos + dir.XMod, gridZPos + dir.ZMod].NorthWall = false;

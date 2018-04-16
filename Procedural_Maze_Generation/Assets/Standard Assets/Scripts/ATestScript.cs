@@ -74,7 +74,7 @@ public class ATestScript : MonoBehaviour {
         if (Input.GetKeyDown("r"))
         {
             InitializeRecursiveDivisionMazeCreationVariables();
-            recursiveDivision(0, 0, gridX, gridZ);
+            recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
             visualizeMaze();
         }
         if (Input.GetKeyDown("f"))
@@ -132,6 +132,22 @@ public class ATestScript : MonoBehaviour {
             for (int j = 0; j < grid.GetLength(1); j++)
             {
                 grid[i, j] = new cell(false, false);
+                if (i == 0)
+                {
+                    grid[i, j].NorthWall = true;
+                }
+                if (i == grid.GetLength(0) - 1)
+                {
+                    grid[i, j].SouthWall = true;
+                }
+                if (j == 0)
+                {
+                    grid[i, j].WestWall = true;
+                }
+                if (j == grid.GetLength(1) - 1)
+                {
+                    grid[i, j].EastWall = true;
+                }
             }
         }
 
@@ -236,17 +252,89 @@ public class ATestScript : MonoBehaviour {
         }
     }
 
-    void recursiveDivision(int X, int Z, int width, int height)
+    int chooseOrientation(int width, int height)
     {
-        //First try always dividing horizontally. So Y is unchanging
-        int splitX = Random.Range(X, width-1);
-        int splitZ = Z + height;
+        if (width < height)
+            return HORIZONTAL;
+        else if (height < width)
+            return VERTICAL;
+        else
+            return ((Random.Range(0, 1) > 0) ? HORIZONTAL : VERTICAL);
+    }
 
-        //Now I got the position to "split to". Split all in-betweens.
-        for (int i = Z; i < splitZ; i++)
+    int HORIZONTAL = 0x10;
+    int VERTICAL = 0x20;
+    int SOUTH = 0x30;
+    int EAST = 0x40;
+
+    void recursiveDivision(int X, int Z, int width, int height, int orientation)
+    {
+        if (width < 2 || height < 2)
+            return;
+
+        bool horizontal = (orientation == HORIZONTAL) ? true : false;
+
+        int wx = X + (horizontal ? 0 : Random.Range(0, width - 2));
+        int wz = Z + (horizontal ? Random.Range(0, height - 2) : 0);
+
+        int px = wx + (horizontal ? Random.Range(0, width) : 0);
+        int pz = wz + (horizontal ? 0 : Random.Range(0, height));
+
+        int dx = horizontal ? 1 : 0;
+        int dz = horizontal ? 0 : 1;
+
+        int length = horizontal ? width : height;
+
+        int dir = horizontal ? SOUTH : EAST;
+
+        for (int i = 0; i < length; i++)
         {
-            grid[splitX, i].EastWall = true;
+            if (wx != px || wz != pz)
+            {
+                if (dir == SOUTH)
+                {
+                    grid[wx, wz].EastWall = true;
+                }
+                if (dir == EAST)
+                {
+                    grid[wx, wz].SouthWall = true;
+                }
+            }
+            wx += dx;
+            wz += dz;
         }
+
+        int nx = X;
+        int nz = Z;
+
+        int w = horizontal ? width : wx - X + 1;
+        int h = horizontal ? wz - Z + 1 : height;
+
+        recursiveDivision(nx, nz, w, h, chooseOrientation(w, h));
+
+        nx = horizontal ? X : wx + 1;
+        nz = horizontal ? wz + 1 : Z;
+
+        w = horizontal ? width : X + width - wx - 1;
+        h = horizontal ? Z + height - wz - 1 : height;
+        recursiveDivision(nx, nz, w, h, chooseOrientation(w, h));
+        //Make path in random spot in new wall.
+        //int makeDoorIdx = Random.Range(Z, splitZ);
+        //grid[splitX, makeDoorIdx].SouthWall = false;
+        //
+        ////Ready variables for recursive call
+        //int newX = splitX - X + 1;
+        //int newZ = Z;
+        //
+        //recursiveDivision(newX, newZ, width-newX, height);
+
+
+
+        //X = top left corner of quadrant
+        //Y = top left corner of quadrant
+        //width = abs(diff(newX, oldX))
+        //height = abs(diff(newY, oldY))
+        //recursiveDivision()
     }
 
     void primsAlgorithm(int startX, int startZ)

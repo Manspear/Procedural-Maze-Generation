@@ -228,8 +228,8 @@ MonoBehaviour:
   southWall: {fileID: 100002, guid: 5a0924473e655484e86a9fb3bffeef1c, type: 3}
   westWall: {fileID: 100002, guid: 123f2d1a37c7d7a4bbeaece4b9ad60a2, type: 3}
   eastWall: {fileID: 100002, guid: 8f9c69ee5d889334885f9176ac55ea5a, type: 3}
-  gridX: 100
-  gridZ: 100
+  gridX: 10
+  gridZ: 10
   seedNumber: 0
   randomSeed: 1
 --- !u!1 &1811023670

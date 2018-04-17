@@ -61,15 +61,19 @@ public class ATestScript : MonoBehaviour {
         //visualizeMaze();
 
     }
+    float startSolveTime;
     bool flipFlop = true;
     void Update()
     {
+        float temp = Time.realtimeSinceStartup;
         //recursive backtracker
         if (Input.GetKeyDown("q"))
         {
             InitializeMazeCreationVariables();
             recursiveBackTrack(0, 0);
             visualizeMaze();
+            solveMaze(0, 0, new List<direction>(), new List<direction>());
+            visualizeMazeSolver();
         }
         //Prim's algorithm
         if (Input.GetKeyDown("e"))
@@ -77,6 +81,10 @@ public class ATestScript : MonoBehaviour {
             InitializeMazeCreationVariables();
             primsAlgorithm(0, 0);
             visualizeMaze();
+            startSolveTime = Time.realtimeSinceStartup;
+            solveMaze(0, 0, new List<direction>(), new List<direction>());
+
+            visualizeMazeSolver();
         }
         //Recursive Division
         if (Input.GetKeyDown("r"))
@@ -84,11 +92,7 @@ public class ATestScript : MonoBehaviour {
             InitializeRecursiveDivisionMazeCreationVariables();
             recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
             visualizeMaze();
-        }
-        if (Input.GetKeyDown("t"))
-        {
-            List<direction> pathIn = new List<direction>();
-            solveMaze(0, 0, pathIn, pathIn);
+            solveMaze(0, 0, new List<direction>(), new List<direction>());
             visualizeMazeSolver();
         }
         }
@@ -172,9 +176,11 @@ public class ATestScript : MonoBehaviour {
 
         if (X == goalCoordinate.X && Z == goalCoordinate.Z)
         {
-
+            
             solvedPath = localSolvingPath;
             triedPath = VisitedPath;
+
+            print(Time.realtimeSinceStartup - startSolveTime);
             //Solver finished
             return true;
         }
@@ -275,10 +281,10 @@ public class ATestScript : MonoBehaviour {
         {
             for (int j = 0; j < grid.GetLength(1); j++)
             {
-                print("i: " + i);
-                print("j: " + j);
-                print("offset: " + wallOffset);
-                print(4 * gridX * gridZ);
+                //print("i: " + i);
+                //print("j: " + j);
+                //print("offset: " + wallOffset);
+                //print(4 * gridX * gridZ);
                 wallPos.Set(posOffset * i, 0, posOffset * j);
 
                 if (grid[i, j].WestWall)

@@ -11,6 +11,8 @@ public class ATestScript : MonoBehaviour {
     public GameObject southWall;
     public GameObject westWall;
     public GameObject eastWall;
+    public GameObject redCube;
+    public GameObject greenCube;
 
     public int gridX = 5;
     public int gridZ = 10;
@@ -18,13 +20,14 @@ public class ATestScript : MonoBehaviour {
     public int seedNumber = 0;
     public bool randomSeed = false;
 
-    private static direction NORTHDir = new direction();
-    private static direction SOUTHDir = new direction();
-    private static direction EASTDir = new direction();
-    private static direction WESTDir = new direction();
+    private static direction NORTHDir = new direction(-1,0);
+    private static direction SOUTHDir = new direction(1,0);
+    private static direction EASTDir = new direction(0, 1);
+    private static direction WESTDir = new direction(0, -1);
 
     public class cell
     {
+        public bool SolverVisited = false;
         public bool Visited = false;
         public bool NorthWall = true;
         public bool SouthWall = true;
@@ -43,6 +46,11 @@ public class ATestScript : MonoBehaviour {
     public class direction
     {
         public int X, Z;
+        public direction(int inX, int inZ)
+        {
+            this.X = inX;
+            this.Z = inZ;
+        }
     }
 
     // Use this for initialization
@@ -77,26 +85,13 @@ public class ATestScript : MonoBehaviour {
             recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
             visualizeMaze();
         }
-        if (Input.GetKeyDown("f"))
+        if (Input.GetKeyDown("t"))
         {
-
-            if (flipFlop)
-            {
-                Vector3 aods = new Vector3(-20, -20, -20);
-                visualizedMaze[0] = Instantiate(eastWall, aods, transform.rotation);
-                flipFlop = false;
-            }
-            else
-            {
-                foreach (GameObject obj in visualizedMaze)
-                {
-                    Destroy(obj);
-                }
-                //Destroy(visualizedMaze[1]);
-                flipFlop = true;
-            }
+            List<direction> pathIn = new List<direction>();
+            solveMaze(0, 0, pathIn, pathIn);
+            visualizeMazeSolver();
         }
-    }
+        }
     void InitializeMazeCreationVariables()
     {
         //initializing grid
@@ -109,14 +104,7 @@ public class ATestScript : MonoBehaviour {
             }
         }
 
-        NORTHDir.X = -1;
-        NORTHDir.Z = 0;
-        SOUTHDir.X = 1;
-        SOUTHDir.Z = 0;
-        WESTDir.X = 0;
-        WESTDir.Z = -1;
-        EASTDir.X = 0;
-        EASTDir.Z = 1;
+
 
         if (randomSeed)
             seedNumber = Random.Range(0, 999999999);
@@ -163,6 +151,113 @@ public class ATestScript : MonoBehaviour {
         if (randomSeed)
             seedNumber = Random.Range(0, 999999999);
         Random.InitState(seedNumber);
+    }
+    List<direction> solvedPath;
+    List<direction> triedPath;
+    bool solveMaze(int X, int Z, List<direction> SolvingPath, List<direction> VisitedPath)
+    {
+        // List<direction> new_shit = VisitedPath.co
+
+
+        //ref no difference
+
+        //is VisitedPath a pointer? Would explain why all paths taken is added. 
+        List<direction> localSolvingPath = new List<direction>(SolvingPath);
+
+        localSolvingPath.Add(new direction(X, Z));
+        VisitedPath.Add(new direction(X, Z));
+        
+
+        direction goalCoordinate = new direction(gridX - 1, gridZ - 1);
+
+        if (X == goalCoordinate.X && Z == goalCoordinate.Z)
+        {
+
+            solvedPath = localSolvingPath;
+            triedPath = VisitedPath;
+            //Solver finished
+            return true;
+        }
+        List<direction> directionCheck = new List<direction>();
+
+        directionCheck.Add(NORTHDir);
+        directionCheck.Add(SOUTHDir);
+        directionCheck.Add(WESTDir);
+        directionCheck.Add(EASTDir);
+
+        //enumerator - is thread on computer. Can make enumerator delayed, so that we can see the pathfinder working, stepping through the paths. Looks cool on video.
+
+        shuffleDirections(directionCheck);
+        grid[X, Z].SolverVisited = true;
+        foreach (direction dir in directionCheck)
+        {
+            if ((X + dir.X >= 0 && X + dir.X < gridX) && (Z + dir.Z >= 0 && Z + dir.Z < gridZ))
+            {
+                if (!grid[X + dir.X, Z + dir.Z].SolverVisited)
+                {
+                    if (dir == NORTHDir)
+                    {
+                        if (!grid[X + dir.X, Z + dir.Z].SouthWall && !grid[X, Z].NorthWall)
+                        {
+                            if (solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath))
+                                return true;
+                        }
+                    }
+                    if (dir == SOUTHDir)
+                    {
+                        if (!grid[X + dir.X, Z + dir.Z].NorthWall && !grid[X, Z].SouthWall)
+                        {
+                            if (solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath))
+                                return true;
+                        }
+                    }
+                    if (dir == WESTDir)
+                    {
+                        if (!grid[X + dir.X, Z + dir.Z].EastWall && !grid[X, Z].WestWall)
+                        {
+                            if (solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath))
+                                return true;
+                        }
+                    }
+                    if (dir == EASTDir)
+                    {
+                        if (!grid[X + dir.X, Z + dir.Z].WestWall && !grid[X, Z].EastWall)
+                        {
+                            if (solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath))
+                                return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    List<GameObject> visualizedSolverCubes = new List<GameObject>();
+    List<GameObject> visualizedTriedCubes = new List<GameObject>();
+
+    void visualizeMazeSolver()
+    {
+        foreach (GameObject obj in visualizedSolverCubes)
+            Destroy(obj);
+        foreach (GameObject obj in visualizedTriedCubes)
+        {
+            Destroy(obj);
+        }
+
+        Vector3 solverPos = new Vector3();
+        foreach (direction dir in solvedPath)
+        {
+            solverPos.x = posOffset * dir.X;
+            solverPos.z = posOffset * dir.Z;
+            visualizedSolverCubes.Add(Instantiate(greenCube, solverPos, Quaternion.identity));
+        }
+        foreach (direction dir in triedPath)
+        {
+            solverPos.x = posOffset * dir.X;
+            solverPos.z = posOffset * dir.Z;
+            visualizedTriedCubes.Add(Instantiate(redCube, solverPos, Quaternion.identity));
+        }
     }
 
     GameObject[] visualizedMaze;

@@ -95,7 +95,13 @@ public class ATestScript : MonoBehaviour {
             solveMaze(0, 0, new List<direction>(), new List<direction>());
             visualizeMazeSolver();
         }
-        }
+    }
+
+    void calculatePathLength()
+    {
+        //Loop through the grid, look for as many south-north is false combos, etc for all directions. Easy. 
+    }
+
     void InitializeMazeCreationVariables()
     {
         //initializing grid

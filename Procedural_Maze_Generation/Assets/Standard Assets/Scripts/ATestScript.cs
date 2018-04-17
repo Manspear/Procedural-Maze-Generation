@@ -72,6 +72,7 @@ public class ATestScript : MonoBehaviour {
             InitializeMazeCreationVariables();
             recursiveBackTrack(0, 0);
             visualizeMaze();
+            startSolveTime = Time.realtimeSinceStartup;
             solveMaze(0, 0, new List<direction>(), new List<direction>());
             visualizeMazeSolver();
         }
@@ -92,6 +93,7 @@ public class ATestScript : MonoBehaviour {
             InitializeRecursiveDivisionMazeCreationVariables();
             recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
             visualizeMaze();
+            startSolveTime = Time.realtimeSinceStartup;
             solveMaze(0, 0, new List<direction>(), new List<direction>());
             visualizeMazeSolver();
         }

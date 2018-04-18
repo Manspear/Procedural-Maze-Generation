@@ -20,10 +20,10 @@ public class ATestScript : MonoBehaviour {
     public int seedNumber = 0;
     public bool randomSeed = false;
 
-    private static direction NORTHDir = new direction(-1,0);
-    private static direction SOUTHDir = new direction(1,0);
-    private static direction EASTDir = new direction(0, 1);
-    private static direction WESTDir = new direction(0, -1);
+    private static IntVector2 NORTHDir = new IntVector2(-1,0);
+    private static IntVector2 SOUTHDir = new IntVector2(1,0);
+    private static IntVector2 EASTDir = new IntVector2(0, 1);
+    private static IntVector2 WESTDir = new IntVector2(0, -1);
 
     public class cell
     {
@@ -43,10 +43,10 @@ public class ATestScript : MonoBehaviour {
         }
     }
 
-    public class direction
+    public class IntVector2
     {
         public int X, Z;
-        public direction(int inX, int inZ)
+        public IntVector2(int inX, int inZ)
         {
             this.X = inX;
             this.Z = inZ;
@@ -56,11 +56,61 @@ public class ATestScript : MonoBehaviour {
     // Use this for initialization
     void Start() {
 
+        gridResolutions.Add(new IntVector2(32, 32));
+        gridResolutions.Add(new IntVector2(64, 64));
+        gridResolutions.Add(new IntVector2(128, 128));
+        gridResolutions.Add(new IntVector2(256, 256));
+
         visualizedMaze = new GameObject[4 * gridX * gridZ];
         //recursiveBackTrack(0, 0);
         //visualizeMaze();
 
     }
+
+    public List<IntVector2> gridResolutions = new List<IntVector2>();
+    public int numberOfTestsPerResolution = 30;
+    
+
+    void writeDataToFile()
+    {
+
+    }
+    void doTest()
+    {
+        //Create 1 maze, extract data, create new maze, extract data, etc...
+        for (int j = 0; j < 3; j++)
+        {
+            foreach (IntVector2 item in gridResolutions)
+            {
+                //0 == recursive Division
+                //
+                //
+                gridX = item.X;
+                gridZ = item.Z;
+                
+                for (int i = 0; i < numberOfTestsPerResolution; i++)
+                {
+                    if (j == 0)
+                        InitializeRecursiveDivisionMazeCreationVariables();
+                    else
+                        InitializeMazeCreationVariables();
+
+                    if(j == 0)
+                        recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
+                    if(j == 1)
+                        recursiveBackTrack(0, 0);
+                    if (j == 2)
+                        primsAlgorithm(0, 0);
+
+                    startSolveTime = Time.realtimeSinceStartup;
+                    solverBack solveTime = solveMaze(0, 0, new List<IntVector2>(), new List<IntVector2>());
+                    AddPathLengths();
+                }
+                AnalyzePathLengthData();
+            }
+        }
+    }
+
     float startSolveTime;
     bool flipFlop = true;
     void Update()
@@ -73,8 +123,9 @@ public class ATestScript : MonoBehaviour {
             recursiveBackTrack(0, 0);
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            solveMaze(0, 0, new List<direction>(), new List<direction>());
+            solveMaze(0, 0, new List<IntVector2>(), new List<IntVector2>());
             visualizeMazeSolver();
+            AddPathLengths();
         }
         //Prim's algorithm
         if (Input.GetKeyDown("e"))
@@ -83,7 +134,7 @@ public class ATestScript : MonoBehaviour {
             primsAlgorithm(0, 0);
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            solveMaze(0, 0, new List<direction>(), new List<direction>());
+            solveMaze(0, 0, new List<IntVector2>(), new List<IntVector2>());
 
             visualizeMazeSolver();
         }
@@ -94,15 +145,100 @@ public class ATestScript : MonoBehaviour {
             recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            solveMaze(0, 0, new List<direction>(), new List<direction>());
+            solveMaze(0, 0, new List<IntVector2>(), new List<IntVector2>());
             visualizeMazeSolver();
         }
     }
 
-    void calculatePathLength()
+    
+    List<int> pathLengths = new List<int>();
+
+    void AddPathLengths()
     {
-        //Loop through the grid, look for as many south-north is false combos, etc for all directions. Easy. 
+        int longestPath = 0;
+        int tempPath = 0;
+        
+
+        for (int i = 0; i < grid.GetLength(0); i++)
+        {
+            for (int j = 0; j < grid.GetLength(1); j++)
+            {
+                //Horizontal Path
+                if (grid[i, j].EastWall)
+                {
+                    if (tempPath != 0)
+                    {
+                        tempPath++;
+                        pathLengths.Add(tempPath);
+                    }
+                        
+                    tempPath = 0;
+                }
+                else
+                {
+                    tempPath++;
+                    if (tempPath > longestPath)
+                        longestPath = tempPath;
+                }
+            }
+        }
+
+        tempPath = 0;
+
+        for (int i = 0; i < grid.GetLength(1); i++)
+        {
+            for (int j = 0; j < grid.GetLength(0); j++)
+            {
+                //Vertical Path
+                if (grid[i, j].SouthWall)
+                {
+                    if (tempPath != 0)
+                    {
+                        tempPath++;
+                        pathLengths.Add(tempPath);
+                    }
+                    tempPath = 0;
+                }
+                else
+                {
+                    tempPath++;
+                    if (tempPath > longestPath)
+                        longestPath = tempPath;
+                }
+                  
+            }
+        }
     }
+
+
+    void AnalyzePathLengthData()
+    {
+        float meanPathLength = 0;
+        float medianPathLength = 0;
+
+        pathLengths.Sort();
+
+        float totPathLengths = 0;
+
+        foreach (int path in pathLengths)
+        {
+            totPathLengths += path;
+        }
+        meanPathLength = totPathLengths / pathLengths.Count;
+        medianPathLength = pathLengths[pathLengths.Count / 2];
+
+        float stdDeviation = 0;
+        for (int i = 0; i < pathLengths.Count; i++)
+        {
+            stdDeviation += Mathf.Pow(pathLengths[i] - meanPathLength, 2);
+        }
+        stdDeviation = Mathf.Sqrt(stdDeviation / pathLengths.Count);
+
+        print("Average Path Length: " + meanPathLength);
+        print("Median Path Length: " + medianPathLength);
+        print("Standard Deviation: " + stdDeviation);
+    }
+
 
     void InitializeMazeCreationVariables()
     {
@@ -164,9 +300,22 @@ public class ATestScript : MonoBehaviour {
             seedNumber = Random.Range(0, 999999999);
         Random.InitState(seedNumber);
     }
-    List<direction> solvedPath;
-    List<direction> triedPath;
-    bool solveMaze(int X, int Z, List<direction> SolvingPath, List<direction> VisitedPath)
+
+    class solverBack
+    {
+        public bool isSolved = false;
+        public float solveTime = 0;
+        
+        public solverBack(bool isSolved, float solveTime)
+        {
+            this.isSolved = isSolved;
+            this.solveTime = solveTime;
+        }
+    }
+
+    List<IntVector2> solvedPath;
+    List<IntVector2> triedPath;
+    solverBack solveMaze(int X, int Z, List<IntVector2> SolvingPath, List<IntVector2> VisitedPath)
     {
         // List<direction> new_shit = VisitedPath.co
 
@@ -174,13 +323,13 @@ public class ATestScript : MonoBehaviour {
         //ref no difference
 
         //is VisitedPath a pointer? Would explain why all paths taken is added. 
-        List<direction> localSolvingPath = new List<direction>(SolvingPath);
+        List<IntVector2> localSolvingPath = new List<IntVector2>(SolvingPath);
 
-        localSolvingPath.Add(new direction(X, Z));
-        VisitedPath.Add(new direction(X, Z));
+        localSolvingPath.Add(new IntVector2(X, Z));
+        VisitedPath.Add(new IntVector2(X, Z));
         
 
-        direction goalCoordinate = new direction(gridX - 1, gridZ - 1);
+        IntVector2 goalCoordinate = new IntVector2(gridX - 1, gridZ - 1);
 
         if (X == goalCoordinate.X && Z == goalCoordinate.Z)
         {
@@ -188,11 +337,10 @@ public class ATestScript : MonoBehaviour {
             solvedPath = localSolvingPath;
             triedPath = VisitedPath;
 
-            print(Time.realtimeSinceStartup - startSolveTime);
             //Solver finished
-            return true;
+            return new solverBack(true, Time.realtimeSinceStartup - startSolveTime);
         }
-        List<direction> directionCheck = new List<direction>();
+        List<IntVector2> directionCheck = new List<IntVector2>();
 
         directionCheck.Add(NORTHDir);
         directionCheck.Add(SOUTHDir);
@@ -203,7 +351,7 @@ public class ATestScript : MonoBehaviour {
 
         shuffleDirections(directionCheck);
         grid[X, Z].SolverVisited = true;
-        foreach (direction dir in directionCheck)
+        foreach (IntVector2 dir in directionCheck)
         {
             if ((X + dir.X >= 0 && X + dir.X < gridX) && (Z + dir.Z >= 0 && Z + dir.Z < gridZ))
             {
@@ -213,38 +361,42 @@ public class ATestScript : MonoBehaviour {
                     {
                         if (!grid[X + dir.X, Z + dir.Z].SouthWall && !grid[X, Z].NorthWall)
                         {
-                            if (solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath))
-                                return true;
+                            solverBack mongo = solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+                            if (mongo.isSolved)
+                                return mongo;
                         }
                     }
                     if (dir == SOUTHDir)
                     {
                         if (!grid[X + dir.X, Z + dir.Z].NorthWall && !grid[X, Z].SouthWall)
                         {
-                            if (solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath))
-                                return true;
+                            solverBack mongo = solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+                            if (mongo.isSolved)
+                                return mongo;
                         }
                     }
                     if (dir == WESTDir)
                     {
                         if (!grid[X + dir.X, Z + dir.Z].EastWall && !grid[X, Z].WestWall)
                         {
-                            if (solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath))
-                                return true;
+                            solverBack mongo = solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+                            if (mongo.isSolved)
+                                return mongo;
                         }
                     }
                     if (dir == EASTDir)
                     {
                         if (!grid[X + dir.X, Z + dir.Z].WestWall && !grid[X, Z].EastWall)
                         {
-                            if (solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath))
-                                return true;
+                            solverBack mongo = solveMaze(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+                            if (mongo.isSolved)
+                                return mongo;
                         }
                     }
                 }
             }
         }
-        return false;
+        return new solverBack(false, 0);
     }
 
     List<GameObject> visualizedSolverCubes = new List<GameObject>();
@@ -260,13 +412,13 @@ public class ATestScript : MonoBehaviour {
         }
 
         Vector3 solverPos = new Vector3();
-        foreach (direction dir in solvedPath)
+        foreach (IntVector2 dir in solvedPath)
         {
             solverPos.x = posOffset * dir.X;
             solverPos.z = posOffset * dir.Z;
             visualizedSolverCubes.Add(Instantiate(greenCube, solverPos, Quaternion.identity));
         }
-        foreach (direction dir in triedPath)
+        foreach (IntVector2 dir in triedPath)
         {
             solverPos.x = posOffset * dir.X;
             solverPos.z = posOffset * dir.Z;
@@ -308,7 +460,7 @@ public class ATestScript : MonoBehaviour {
         }
     }
 
-    void shuffleDirections(List<direction> directionList)
+    void shuffleDirections(List<IntVector2> directionList)
     {
         //Shuffles directionList
         int n = directionList.Count;
@@ -316,7 +468,7 @@ public class ATestScript : MonoBehaviour {
         {
             int k = Random.Range(0, n);
             n--;
-            direction value = directionList[k];
+            IntVector2 value = directionList[k];
             directionList[k] = directionList[n];
             directionList[n] = value;
         }
@@ -333,7 +485,7 @@ public class ATestScript : MonoBehaviour {
         }
     }
 
-    void carveInDirection(direction dir, int gridXPos, int gridZPos)
+    void carveInDirection(IntVector2 dir, int gridXPos, int gridZPos)
     {
         if ((gridXPos + dir.X >= 0 && gridXPos + dir.X < gridX) && (gridZPos + dir.Z >= 0 && gridZPos + dir.Z < gridZ))
         {
@@ -455,7 +607,7 @@ public class ATestScript : MonoBehaviour {
         List<mazeLoc> frontier = new List<mazeLoc>();
 
         //Add directions
-        List<direction> directionList = new List<direction>();
+        List<IntVector2> directionList = new List<IntVector2>();
         //initializing list of directions 
         directionList.Add(NORTHDir);
         directionList.Add(SOUTHDir);
@@ -479,7 +631,7 @@ public class ATestScript : MonoBehaviour {
             grid[frontier[CFI].XPos, frontier[CFI].ZPos].Visited = true;
             shuffleDirections(directionList);
             
-            foreach (direction dir in directionList)
+            foreach (IntVector2 dir in directionList)
             {
                 //Add valid adjacent cells to frontier.
                 if ((frontier[CFI].XPos + dir.X >= 0 && frontier[CFI].XPos + dir.X < gridX) && (frontier[CFI].ZPos + dir.Z >= 0 && frontier[CFI].ZPos + dir.Z < gridZ) && grid[frontier[CFI].XPos + dir.X, frontier[CFI].ZPos + dir.Z].Visited == false)
@@ -504,7 +656,7 @@ public class ATestScript : MonoBehaviour {
 
     void recursiveBackTrack(int gridXPos, int gridZPos)
     {
-        List<direction> directionList = new List<direction>();
+        List<IntVector2> directionList = new List<IntVector2>();
         //initializing list of directions 
         directionList.Add(NORTHDir);
         directionList.Add(SOUTHDir);
@@ -517,7 +669,7 @@ public class ATestScript : MonoBehaviour {
         grid[gridXPos, gridZPos].Visited = true;
 
         //Now loop through neighbours. If found neighbour, call self, with neighbours position
-        foreach (direction dir in directionList)
+        foreach (IntVector2 dir in directionList)
         {
             if ((gridXPos + dir.X >= 0 && gridXPos + dir.X < gridX) && (gridZPos + dir.Z >= 0 && gridZPos + dir.Z < gridZ) && grid[gridXPos + dir.X, gridZPos + dir.Z].Visited == false)
             {

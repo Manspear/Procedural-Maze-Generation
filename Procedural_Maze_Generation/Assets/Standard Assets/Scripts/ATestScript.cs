@@ -57,13 +57,14 @@ public class ATestScript : MonoBehaviour {
     void Start() {
 
         gridResolutions.Add(new IntVector2(32, 32));
-        gridResolutions.Add(new IntVector2(64, 64));
-        gridResolutions.Add(new IntVector2(128, 128));
-        gridResolutions.Add(new IntVector2(256, 256));
+       //gridResolutions.Add(new IntVector2(64, 64));//
+       //gridResolutions.Add(new IntVector2(128, 128));
+       //gridResolutions.Add(new IntVector2(256, 256));
 
         visualizedMaze = new GameObject[4 * gridX * gridZ];
         //recursiveBackTrack(0, 0);
         //visualizeMaze();
+        doTest();
 
     }
 
@@ -71,23 +72,100 @@ public class ATestScript : MonoBehaviour {
     public int numberOfTestsPerResolution = 30;
     
 
-    void writeDataToFile()
+    void writeDataToFile(List<int> pathLengths, List<float> solveTime, IntVector2 gridResolution, int mazeAlgorithm)
     {
+        //A2 --> A+idx can make it possible to auto-select rows and columns for Excel formulas. 
+        /*
+         RQ1:  What is the difference in complexity between the maze generation algorithms re-cursive backtracker, 
+               Prim’s algorithm, and recursive division, in terms of path length andcompletion time, when solved 
+               using a depth-first-search (DFS) algorithm?
+         
+         Approach:
 
+             I do not know how to make path-length and completion time the "same" variable (complexity), so I will treat them as separate, then evaluate the relationship between them.
+
+             Complexity: path length and solving time both indicators. Path length describes the maze. Solving time is what measures complexity. 
+             What is the difference in path length between the maze algorithms? 
+             a) For each resolution RES with maze algorithm MA
+                1. Do 30 tests
+                2. Write all path lengths, and all solve times, to the same .csv file
+                3. Calculate the average, median, and std deviation using the total data of the 30 tests (one CSV file containing 30 tests will only contain 1 average, median, and std deviation)  
+                - Compare std deviation, median, and average path length between them.
+             What is the difference in solving time between the maze algorithms?
+                - Compare std deviation, median, and average path length between them.
+             What is the relation between the solving-time and path length for the maze algorithms? //So that I can see if increased path length => increased solving time
+                - 
+         */
+        pathLengths.Sort();
+        solveTime.Sort();
+        string path = "Assets/Data/Test" + gridResolution.X + "x" + gridResolution.Z +".csv";
+        StreamWriter writer = new StreamWriter(path, true);
+
+        string deliminator = "";
+        //for (int i = 0; i < mazeAlgorithm; i++)
+        //    deliminator += ",,,";
+
+        //Hmm... What data am I interested in? What do I need from path length?
+        //
+        // The normal distribution of path lengths for each maze algorithm, for each resolution. To compare algorithms, see how they differ.
+        // Average path length + normal distribution + median
+        //
+        //What do I need from solving time?
+        //
+        //Average solving time for each maze algorithm. Normal distribution. 
+
+
+        switch (mazeAlgorithm)
+        {
+            case RECURSIVEDIVISION:
+                writer.WriteLine("#0");
+                break;
+            case RECURSIVEBACKTRACKER:
+                writer.WriteLine("#1");
+                break;
+            case PRIMS:
+                writer.WriteLine("#2");
+                break;
+        }
+
+        for (int i = 0; i < pathLengths.Count; i++)
+        {
+            if (i < solveTime.Count)
+                writer.WriteLine(deliminator + pathLengths[i] + "," + solveTime[i]);
+            else
+                writer.WriteLine(deliminator + pathLengths[i]);
+        }
+
+        writer.Close();
     }
+
+    const int RECURSIVEDIVISION = 0;
+    const int RECURSIVEBACKTRACKER = 1;
+    const int PRIMS = 2;
+
     void doTest()
     {
+        foreach (IntVector2 resolution in gridResolutions)
+        {
+            string path = "Assets/Data/Test" + resolution.X + "x" + resolution.Z + ".csv";
+            File.WriteAllText(path, string.Empty);
+            StreamWriter writer = new StreamWriter(path, true);
+            writer.WriteLine("sep=,");
+            writer.Close();
+        }
         //Create 1 maze, extract data, create new maze, extract data, etc...
         for (int j = 0; j < 3; j++)
         {
-            foreach (IntVector2 item in gridResolutions)
+            pathLengths.Clear();
+            foreach (IntVector2 resolution in gridResolutions)
             {
                 //0 == recursive Division
                 //
                 //
-                gridX = item.X;
-                gridZ = item.Z;
-                
+                gridX = resolution.X;
+                gridZ = resolution.Z;
+                List<float> solvingTime = new List<float>();
+
                 for (int i = 0; i < numberOfTestsPerResolution; i++)
                 {
                     if (j == 0)
@@ -95,18 +173,26 @@ public class ATestScript : MonoBehaviour {
                     else
                         InitializeMazeCreationVariables();
 
-                    if(j == 0)
-                        recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
-                    if(j == 1)
-                        recursiveBackTrack(0, 0);
-                    if (j == 2)
-                        primsAlgorithm(0, 0);
+                    switch(j)
+                    {
+                        case RECURSIVEDIVISION:
+                            recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
+                            break;
+                        case RECURSIVEBACKTRACKER:
+                            recursiveBackTrack(0, 0);
+                            break;
+                        case PRIMS:
+                            primsAlgorithm(0, 0);
+                            break;
+                    }                     
 
                     startSolveTime = Time.realtimeSinceStartup;
                     solverBack solveTime = solveMaze(0, 0, new List<IntVector2>(), new List<IntVector2>());
+                    solvingTime.Add(solveTime.solveTime);
                     AddPathLengths();
+                    print(pathLengths.Count);
                 }
-                AnalyzePathLengthData();
+                writeDataToFile(pathLengths, solvingTime, resolution, j);
             }
         }
     }

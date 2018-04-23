@@ -4,7 +4,7 @@ using UnityEngine;
 using System.IO;
 
 
-public class ATestScript : MonoBehaviour {
+public class MazeGenerationScript : MonoBehaviour {
 
     float posOffset = 8.6f;
     public GameObject northWall;
@@ -56,10 +56,15 @@ public class ATestScript : MonoBehaviour {
     // Use this for initialization
     void Start() {
 
+        directionCheck.Add(NORTHDir);
+        directionCheck.Add(SOUTHDir);
+        directionCheck.Add(WESTDir);
+        directionCheck.Add(EASTDir);
+
         gridResolutions.Add(new IntVector2(32, 32));
-       //gridResolutions.Add(new IntVector2(64, 64));//
-       //gridResolutions.Add(new IntVector2(128, 128));
-       //gridResolutions.Add(new IntVector2(256, 256));
+        gridResolutions.Add(new IntVector2(64, 64));//
+        gridResolutions.Add(new IntVector2(128, 128));
+        //gridResolutions.Add(new IntVector2(256, 256));
 
         visualizedMaze = new GameObject[4 * gridX * gridZ];
         //recursiveBackTrack(0, 0);
@@ -70,89 +75,130 @@ public class ATestScript : MonoBehaviour {
 
     public List<IntVector2> gridResolutions = new List<IntVector2>();
     public int numberOfTestsPerResolution = 30;
-    
 
-    void writeDataToFile(List<int> pathLengths, List<float> solveTime, IntVector2 gridResolution, int mazeAlgorithm)
+    void writeDataToFile(List<int> pathLengths, float solveTime, IntVector2 gridResolution, int mazeAlgorithm, int seed, string testPath, string statisticsPath)
     {
-        //A2 --> A+idx can make it possible to auto-select rows and columns for Excel formulas. 
-        /*
-         RQ1:  What is the difference in complexity between the maze generation algorithms re-cursive backtracker, 
-               Prim’s algorithm, and recursive division, in terms of path length andcompletion time, when solved 
-               using a depth-first-search (DFS) algorithm?
-         
-         Approach:
-
-             I do not know how to make path-length and completion time the "same" variable (complexity), so I will treat them as separate, then evaluate the relationship between them.
-
-             Complexity: path length and solving time both indicators. Path length describes the maze. Solving time is what measures complexity. 
-             What is the difference in path length between the maze algorithms? 
-             a) For each resolution RES with maze algorithm MA
-                1. Do 30 tests
-                2. Write all path lengths, and all solve times, to the same .csv file
-                3. Calculate the average, median, and std deviation using the total data of the 30 tests (one CSV file containing 30 tests will only contain 1 average, median, and std deviation)  
-                - Compare std deviation, median, and average path length between them.
-             What is the difference in solving time between the maze algorithms?
-                - Compare std deviation, median, and average path length between them.
-             What is the relation between the solving-time and path length for the maze algorithms? //So that I can see if increased path length => increased solving time
-                - 
-         */
         pathLengths.Sort();
-        solveTime.Sort();
-        string path = "Assets/Data/Test" + gridResolution.X + "x" + gridResolution.Z +".csv";
-        StreamWriter writer = new StreamWriter(path, true);
+        
+        //Begin testWriter
+        //---------------------------------------------------------------
 
-        string deliminator = "";
-        //for (int i = 0; i < mazeAlgorithm; i++)
-        //    deliminator += ",,,";
+        StreamWriter testWriter = new StreamWriter(testPath, true);
 
-        //Hmm... What data am I interested in? What do I need from path length?
-        //
-        // The normal distribution of path lengths for each maze algorithm, for each resolution. To compare algorithms, see how they differ.
-        // Average path length + normal distribution + median
-        //
-        //What do I need from solving time?
-        //
-        //Average solving time for each maze algorithm. Normal distribution. 
+        int shortPathThreshhold = (int)(gridResolution.X * 0.1f);
+        int mediumPathThreshhold = (int)(gridResolution.X * 0.3f);
+        int longPathThreshhold = gridResolution.X;
 
+        print(pathLengths.Count);
 
+        int shortCorridors = 0;
+        int mediumCorridors = 0;
+        int longCorridors = 0;
+
+        for (int i = 1; i < pathLengths.Count; i++)
+        {
+            if (pathLengths[i] < shortPathThreshhold)
+                shortCorridors++;
+            else if (pathLengths[i] < mediumPathThreshhold)
+                mediumCorridors++;
+            else
+                longCorridors++;
+        }
+        
         switch (mazeAlgorithm)
         {
             case RECURSIVEDIVISION:
-                writer.WriteLine("#0");
+                testWriter.WriteLine("RecursiveDivision," + gridResolution.X + "x" + gridResolution.Z + "," + solveTime + "," + shortCorridors + "," + mediumCorridors + "," + longCorridors + "," + seed);
                 break;
             case RECURSIVEBACKTRACKER:
-                writer.WriteLine("#1");
+                testWriter.WriteLine("RecursiveBacktracker," + gridResolution.X + "x" + gridResolution.Z + "," + solveTime + "," + shortCorridors + "," + mediumCorridors + "," + longCorridors + "," + seed);
                 break;
             case PRIMS:
-                writer.WriteLine("#2");
+                testWriter.WriteLine("Prims," + gridResolution.X + "x" + gridResolution.Z + "," + solveTime + "," + shortCorridors + "," + mediumCorridors + "," + longCorridors + "," + seed);
                 break;
         }
 
-        for (int i = 0; i < pathLengths.Count; i++)
+        testWriter.Close();
+        //End testWriter
+        //------------------------------------------------------------------
+        
+    }
+
+    void writeStats(int mazeAlgorithm, IntVector2 gridResolution, string statisticsPath)
+    {
+        //Begin Statwriting
+        string statString = "";
+        if (mazeAlgorithm == RECURSIVEDIVISION)
+            statString = "RecursiveDivision";
+        else if (mazeAlgorithm == RECURSIVEBACKTRACKER)
+            statString = "RecursiveBacktracker";
+        else if (mazeAlgorithm == PRIMS)
+            statString = "Prims";
+
+        statString += "," + gridResolution.X + "x" + gridResolution.Z;
+
+        foreach (int item in pathLengths)
         {
-            if (i < solveTime.Count)
-                writer.WriteLine(deliminator + pathLengths[i] + "," + solveTime[i]);
-            else
-                writer.WriteLine(deliminator + pathLengths[i]);
+            corridorLengths[item - 1]++;
         }
 
-        writer.Close();
+        for (int i = 1; i < biggestResolution; i++)
+        {
+            statString += "," + ((corridorLengths[i] / (float)pathLengths.Count) * 100) + "%";
+        }
+
+        for (int i = 0; i < corridorLengths.Length; i++)
+        {
+            corridorLengths[i] = 0;
+        }
+        StreamWriter statWriter = new StreamWriter(statisticsPath, true);
+        statWriter.WriteLine(statString);
+
+        statWriter.Close();
     }
+
+    
+
+    string testFilePath = "Assets/Data/mazeTest.csv";
+    string statisticsFilePath = "Assets/Data/mazeStats.csv";
 
     const int RECURSIVEDIVISION = 0;
     const int RECURSIVEBACKTRACKER = 1;
     const int PRIMS = 2;
 
+    int[] corridorLengths;
+    int biggestResolution = 0;
+
     void doTest()
     {
-        foreach (IntVector2 resolution in gridResolutions)
+        File.WriteAllText(testFilePath, string.Empty);
+        File.WriteAllText(statisticsFilePath, string.Empty);
+        StreamWriter writer = new StreamWriter(testFilePath, true);
+        StreamWriter statWriter = new StreamWriter(statisticsFilePath, true);
+        writer.WriteLine("Maze Type, Resolution, Solving Time, Short Corridors, Medium Corridors, Long Corridors, Seed");
+        string statString = "Maze Type, Resolution";
+        
+        foreach(IntVector2 res in gridResolutions)
         {
-            string path = "Assets/Data/Test" + resolution.X + "x" + resolution.Z + ".csv";
-            File.WriteAllText(path, string.Empty);
-            StreamWriter writer = new StreamWriter(path, true);
-            writer.WriteLine("sep=,");
-            writer.Close();
+            if (biggestResolution < res.X)
+                biggestResolution = res.X;
         }
+        for (int i = 1; i < biggestResolution; i++)
+        {
+            statString += "," + (i + 1);
+        }
+        corridorLengths = new int[biggestResolution];
+        statWriter.WriteLine(statString);
+        writer.Close();
+        statWriter.Close();
+        // foreach (IntVector2 resolution in gridResolutions)
+        // {
+        //     string path = "Assets/Data/Test" + resolution.X + "x" + resolution.Z + ".csv";
+        //     File.WriteAllText(path, string.Empty);
+        //     StreamWriter writer = new StreamWriter(path, true);
+        //     writer.WriteLine("sep=,");
+        //     writer.Close();
+        // }
         //Create 1 maze, extract data, create new maze, extract data, etc...
         for (int j = 0; j < 3; j++)
         {
@@ -188,11 +234,15 @@ public class ATestScript : MonoBehaviour {
 
                     startSolveTime = Time.realtimeSinceStartup;
                     solverBack solveTime = solveMaze(0, 0, new List<IntVector2>(), new List<IntVector2>());
-                    solvingTime.Add(solveTime.solveTime);
+                    //solvingTime.Add(solveTime.solveTime);
+                    //seedNumbers.Add(seedNumber);
                     AddPathLengths();
-                    print(pathLengths.Count);
+                    writeDataToFile(pathLengths, solveTime.solveTime, resolution, j, seedNumber, testFilePath, statisticsFilePath);
+                    writeStats(j, resolution, statisticsFilePath);
+                    pathLengths.Clear();
+                    pathLengths.TrimExcess();
                 }
-                writeDataToFile(pathLengths, solvingTime, resolution, j);
+                
             }
         }
     }
@@ -338,8 +388,6 @@ public class ATestScript : MonoBehaviour {
             }
         }
 
-
-
         if (randomSeed)
             seedNumber = Random.Range(0, 999999999);
         Random.InitState(seedNumber);
@@ -398,7 +446,7 @@ public class ATestScript : MonoBehaviour {
             this.solveTime = solveTime;
         }
     }
-
+    List<IntVector2> directionCheck = new List<IntVector2>();
     List<IntVector2> solvedPath;
     List<IntVector2> triedPath;
     solverBack solveMaze(int X, int Z, List<IntVector2> SolvingPath, List<IntVector2> VisitedPath)
@@ -413,25 +461,20 @@ public class ATestScript : MonoBehaviour {
 
         localSolvingPath.Add(new IntVector2(X, Z));
         VisitedPath.Add(new IntVector2(X, Z));
-        
 
-        IntVector2 goalCoordinate = new IntVector2(gridX - 1, gridZ - 1);
-
-        if (X == goalCoordinate.X && Z == goalCoordinate.Z)
         {
-            
-            solvedPath = localSolvingPath;
-            triedPath = VisitedPath;
+            IntVector2 goalCoordinate = new IntVector2(gridX - 1, gridZ - 1);
 
-            //Solver finished
-            return new solverBack(true, Time.realtimeSinceStartup - startSolveTime);
+            if (X == goalCoordinate.X && Z == goalCoordinate.Z)
+            {
+
+                solvedPath = localSolvingPath;
+                triedPath = VisitedPath;
+
+                //Solver finished
+                return new solverBack(true, Time.realtimeSinceStartup - startSolveTime);
+            }
         }
-        List<IntVector2> directionCheck = new List<IntVector2>();
-
-        directionCheck.Add(NORTHDir);
-        directionCheck.Add(SOUTHDir);
-        directionCheck.Add(WESTDir);
-        directionCheck.Add(EASTDir);
 
         //enumerator - is thread on computer. Can make enumerator delayed, so that we can see the pathfinder working, stepping through the paths. Looks cool on video.
 

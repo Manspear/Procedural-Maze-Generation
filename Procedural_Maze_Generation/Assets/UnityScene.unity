@@ -126,6 +126,7 @@ GameObject:
   - component: {fileID: 147358075}
   - component: {fileID: 147358079}
   - component: {fileID: 147358080}
+  - component: {fileID: 147358081}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -221,6 +222,23 @@ MonoBehaviour:
   m_GameObject: {fileID: 147358074}
   m_Enabled: 1
   m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3b1b749789380ca4e90420e967213f91, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  mainSpeed: 100
+  shiftAdd: 250
+  maxShift: 1000
+  camSens: 0.25
+  rotateOnlyIfMousedown: 1
+  movementStaysFlat: 1
+--- !u!114 &147358081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_PrefabParentObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 0}
+  m_GameObject: {fileID: 147358074}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0bba4b39d13790b449e54cea545c9207, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
@@ -230,11 +248,11 @@ MonoBehaviour:
   eastWall: {fileID: 100002, guid: 8f9c69ee5d889334885f9176ac55ea5a, type: 3}
   redCube: {fileID: 100002, guid: 6eacfa334d88fcd42ae05082885c6a6a, type: 3}
   greenCube: {fileID: 100000, guid: 99b8a64cedb9cdc42ae05fccca0a2dd1, type: 3}
-  gridX: 10
-  gridZ: 10
+  gridX: 5
+  gridZ: 5
   seedNumber: 0
   randomSeed: 1
-  numberOfTestsPerResolution: 1
+  numberOfTestsPerResolution: 5
 --- !u!1 &1811023670
 GameObject:
   m_ObjectHideFlags: 0

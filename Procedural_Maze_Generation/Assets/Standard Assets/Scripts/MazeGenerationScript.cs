@@ -59,16 +59,16 @@ public class MazeGenerationScript : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
-
         directionCheck.Add(NORTHDir);
         directionCheck.Add(SOUTHDir);
         directionCheck.Add(WESTDir);
         directionCheck.Add(EASTDir);
 
-        gridResolutions.Add(new IntVector2(32, 32));
-        gridResolutions.Add(new IntVector2(64, 64));//
-        gridResolutions.Add(new IntVector2(128, 128));
-        //gridResolutions.Add(new IntVector2(256, 256));
+        //gridResolutions.Add(new IntVector2(32, 32));
+        //gridResolutions.Add(new IntVector2(64, 64));//
+        //gridResolutions.Add(new IntVector2(128, 128));
+        gridResolutions.Add(new IntVector2(256, 256));
+        //gridResolutions.Add(new IntVector2(512, 512));
 
         visualizedMaze = new GameObject[1];
         //recursiveBackTrack(0, 0);
@@ -80,10 +80,10 @@ public class MazeGenerationScript : MonoBehaviour {
     public List<IntVector2> gridResolutions = new List<IntVector2>();
     public int numberOfTestsPerResolution = 30;
 
-    void writeDataToFile(List<int> pathLengths, float solveTime, IntVector2 gridResolution, int mazeAlgorithm, int seed, string testPath, string statisticsPath)
+    void writeDataToFile(List<int> pathLengths, float solveTime, IntVector2 gridResolution, int mazeAlgorithm, int seed, string testPath)
     {
         pathLengths.Sort();
-
+        
         //Begin testWriter
         //---------------------------------------------------------------
 
@@ -124,22 +124,60 @@ public class MazeGenerationScript : MonoBehaviour {
         //------------------------------------------------------------------
 
     }
+    List<int> allCorridorLengths = new List<int>();
+    List<int> allPathLengths = new List<int>();
+    List<float> allSolvingTimes = new List<float>();
+    int allNumBranches = 0;
+    int[] allPathBranchDistribution = new int[4];
 
-    void writeStats(int mazeAlgorithm, IntVector2 gridResolution, string statisticsPath)
+    void writeStats(int mazeAlgorithm, IntVector2 gridResolution, string statisticsPath, float solveTime, int seed)
     {
         //Begin Statwriting
         string statString = "";
+        statString += seed;
         if (mazeAlgorithm == RECURSIVEDIVISION)
-            statString = "RecursiveDivision";
+            statString += ",RecursiveDivision";
         else if (mazeAlgorithm == RECURSIVEBACKTRACKER)
-            statString = "RecursiveBacktracker";
+            statString += ",RecursiveBacktracker";
         else if (mazeAlgorithm == PRIMS)
-            statString = "Prims";
+            statString += ",Prims";
 
         statString += "," + gridResolution.X + "x" + gridResolution.Z;
 
+        statString += "," + solveTime;
+
+        int[] pathBranchDistribution = new int[4];
+        int numBranches = 0;
+
+        foreach (cell item in grid)
+        {
+            int pathBranchCounter = 0;
+            if (item.NorthWall == false)
+                pathBranchCounter++;
+            if (item.SouthWall == false)
+                pathBranchCounter++;
+            if (item.WestWall == false)
+                pathBranchCounter++;
+            if (item.EastWall == false)
+                pathBranchCounter++;
+
+            pathBranchDistribution[pathBranchCounter - 1]++;
+            numBranches++;
+        }
+        allNumBranches += numBranches;
+        for (int i = 0; i < 4; i++)
+        {
+            allPathBranchDistribution[i] += pathBranchDistribution[i];
+        }
+
+        for (int i = 0; i < 4; i++)
+        {
+            statString += "," + ((float)pathBranchDistribution[i] / (float)numBranches) * 100f + "%";
+        }
+
         foreach (int item in pathLengths)
         {
+            allPathLengths.Add(item);
             corridorLengths[item - 1]++;
         }
 
@@ -147,9 +185,13 @@ public class MazeGenerationScript : MonoBehaviour {
         {
             statString += "," + ((corridorLengths[i] / (float)pathLengths.Count) * 100) + "%";
         }
+        while(allCorridorLengths.Count < corridorLengths.Length)
+            allCorridorLengths.Add(0);
 
         for (int i = 0; i < corridorLengths.Length; i++)
         {
+            allCorridorLengths[i] += corridorLengths[i];
+
             corridorLengths[i] = 0;
         }
         StreamWriter statWriter = new StreamWriter(statisticsPath, true);
@@ -157,8 +199,54 @@ public class MazeGenerationScript : MonoBehaviour {
 
         statWriter.Close();
     }
+    List<string> averageStringList = new List<string>();
+    void writeAverageStats(int mazeAlgorithm, IntVector2 gridResolution, string statisticsPath)
+    {
+        //Begin Statwriting
+        string statString = "ALL";
+        if (mazeAlgorithm == RECURSIVEDIVISION)
+            statString += ",RecursiveDivision";
+        else if (mazeAlgorithm == RECURSIVEBACKTRACKER)
+            statString += ",RecursiveBacktracker";
+        else if (mazeAlgorithm == PRIMS)
+            statString += ",Prims";
+
+        statString += "," + gridResolution.X + "x" + gridResolution.Z;
+        float totTime = 0;
+        foreach (float item in allSolvingTimes)
+        {
+            totTime += item;
+        }
+
+        statString += "," + totTime / (float)allSolvingTimes.Count;
+
+        for (int i = 0; i < 4; i++)
+        {
+            statString += "," + ((((float)allPathBranchDistribution[i] / (float)allNumBranches) * 100f) + "%");
+            allPathBranchDistribution[i] = 0;
+        }
+
+        //allCorridorLengths.Sort();
+        //Get all paths of length X, when next length is NOT length X, divide gathered length Xs by number of Xs to get average.
+        for (int i = 1; i < allCorridorLengths.Count; i++)
+        {
+            //print("Corridor Length" + allCorridorLengths[i] + " Pathlengths: " + allPathLengths.Count);
+            float average = (float)allCorridorLengths[i] / (float)allPathLengths.Count;
+            statString += "," + average * 100 + "%";     
+        }
 
 
+        allCorridorLengths.Clear();
+        allPathLengths.Clear();
+        allNumBranches = 0;
+
+
+        averageStringList.Add(statString);
+
+        //StreamWriter statWriter = new StreamWriter(statisticsPath, true);
+        //statWriter.WriteLine(statString);
+        //statWriter.Close();
+    }
 
     string testFilePath = "Assets/Data/mazeTest.csv";
     string statisticsFilePath = "Assets/Data/mazeStats.csv";
@@ -170,14 +258,9 @@ public class MazeGenerationScript : MonoBehaviour {
     int[] corridorLengths;
     int biggestResolution = 0;
 
-    void doTest()
+    string generateStatHeaderString()
     {
-        File.WriteAllText(testFilePath, string.Empty);
-        File.WriteAllText(statisticsFilePath, string.Empty);
-        StreamWriter writer = new StreamWriter(testFilePath, true);
-        StreamWriter statWriter = new StreamWriter(statisticsFilePath, true);
-        writer.WriteLine("Maze Type, Resolution, Solving Time, Short Corridors, Medium Corridors, Long Corridors, Seed");
-        string statString = "Maze Type, Resolution";
+        string statString = "Seed, Maze Type, Resolution, Solving Time, 1 Branches, 2 Branches, 3 Branches, 4 Branches";
 
         foreach (IntVector2 res in gridResolutions)
         {
@@ -186,8 +269,22 @@ public class MazeGenerationScript : MonoBehaviour {
         }
         for (int i = 1; i < biggestResolution; i++)
         {
-            statString += "," + (i + 1);
+            statString += "," + (i + 1) + " Length Corridor";
         }
+        return statString;
+    }
+
+    void doTest()
+    {
+        File.WriteAllText(testFilePath, string.Empty);
+        File.WriteAllText(statisticsFilePath, string.Empty);
+        StreamWriter writer = new StreamWriter(testFilePath, true);
+        StreamWriter statWriter = new StreamWriter(statisticsFilePath, true);
+        writer.WriteLine("Maze Type, Resolution, Solving Time, Short Corridors, Medium Corridors, Long Corridors, Seed");
+
+        string statString = generateStatHeaderString();
+
+
         corridorLengths = new int[biggestResolution];
         statWriter.WriteLine(statString);
         writer.Close();
@@ -214,37 +311,47 @@ public class MazeGenerationScript : MonoBehaviour {
 
                 for (int i = 0; i < numberOfTestsPerResolution; i++)
                 {
-                    if (j == 0)
-                        InitializeRecursiveDivisionMazeCreationVariables();
-                    else
+                    //if (j == 0)
+                    //    InitializeRecursiveDivisionMazeCreationVariables();
+                    //else
                         InitializeMazeCreationVariables();
 
-                    switch (j)
-                    {
-                        case RECURSIVEDIVISION:
-                            recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
-                            break;
-                        case RECURSIVEBACKTRACKER:
-                            recursiveBackTrack(0, 0);
-                            break;
-                        case PRIMS:
-                            primsAlgorithm(0, 0);
-                            break;
-                    }
+                    //switch (j)
+                    //{
+                    //    case RECURSIVEDIVISION:
+                    //        recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
+                    //        break;
+                    //    case RECURSIVEBACKTRACKER:
+                    //        recursiveBackTrack(0, 0);
+                    //        break;
+                    //    case PRIMS:
+                    //        primsAlgorithm(0, 0);
+                    //        break;
+                    //}
+                    recursiveBackTrack(new IntVector2(0,0));
 
                     startSolveTime = Time.realtimeSinceStartup;
                     solverBack solveTime = solveMaze(0, 0);
                     //solvingTime.Add(solveTime.solveTime);
                     //seedNumbers.Add(seedNumber);
                     AddPathLengths();
-                    writeDataToFile(pathLengths, solveTime.solveTime, resolution, j, seedNumber, testFilePath, statisticsFilePath);
-                    writeStats(j, resolution, statisticsFilePath);
+                    allSolvingTimes.Add(solveTime.solveTime);
+                    writeDataToFile(pathLengths, solveTime.solveTime, resolution, j, seedNumber, testFilePath);
+                    writeStats(j, resolution, statisticsFilePath, solveTime.solveTime, seedNumber);
                     pathLengths.Clear();
                     pathLengths.TrimExcess();
                 }
-
+                writeAverageStats(j, resolution, statisticsFilePath);
             }
         }
+        StreamWriter stat2Writer = new StreamWriter(statisticsFilePath, true);
+        stat2Writer.WriteLine("AVERAGE STATS");
+        stat2Writer.WriteLine(generateStatHeaderString());
+        foreach (string stat in averageStringList)
+        {
+            stat2Writer.WriteLine(stat);
+        }
+        stat2Writer.Close();
     }
 
     float startSolveTime;
@@ -256,8 +363,7 @@ public class MazeGenerationScript : MonoBehaviour {
         if (Input.GetKeyDown("t"))
         {
             doTest();
-            
-        }
+        }        
         //recursive backtracker
         if (Input.GetKeyDown("q"))
         {
@@ -269,7 +375,7 @@ public class MazeGenerationScript : MonoBehaviour {
             gridX = pGridX;
             gridZ = pGridZ;
             InitializeMazeCreationVariables();
-            recursiveBackTrack(0, 0);
+            recursiveBackTrack(new IntVector2(0, 0));
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
             solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
@@ -946,8 +1052,19 @@ public class MazeGenerationScript : MonoBehaviour {
             return false;
     }
 
+    class stackState
+    {
+        public IntVector2 pos;
+        public List<IntVector2> directions;
 
-    void recursiveBackTrack(int gridXPos, int gridZPos)
+        public stackState(IntVector2 pos, List<IntVector2> directions)
+        {
+            this.pos = pos;
+            this.directions = directions;
+        }
+    }
+
+    void recursiveBackTrack(IntVector2 pos)
     {
         List<IntVector2> directionList = new List<IntVector2>();
         //initializing list of directions 
@@ -958,36 +1075,86 @@ public class MazeGenerationScript : MonoBehaviour {
 
         shuffleDirections(directionList);
 
+        Stack<stackState> theStack = new Stack<stackState>();
+        theStack.Push(new stackState(pos, directionList));
         //set current cell as visited
-        grid[gridXPos, gridZPos].Visited = true;
+        grid[pos.X, pos.Z].Visited = true;
 
-        //Now loop through neighbours. If found neighbour, call self, with neighbours position
-        foreach (IntVector2 dir in directionList)
+        while (theStack.Count > 0)
         {
-            if ((gridXPos + dir.X >= 0 && gridXPos + dir.X < gridX) && (gridZPos + dir.Z >= 0 && gridZPos + dir.Z < gridZ) && grid[gridXPos + dir.X, gridZPos + dir.Z].Visited == false)
+            stackState tempState = theStack.Pop();
+
+            IntVector2 po = tempState.pos;
+            grid[po.X, po.Z].Visited = true;
+            //Now loop through neighbours. If found neighbour, call self, with neighbours position
+            foreach (IntVector2 dir in tempState.directions)
             {
-                if (dir == NORTHDir)
+                Stack<IntVector2> tempStack = new Stack<IntVector2>();
+                if (IsDirCoordValid(new IntVector2(po.X, po.Z), dir) && grid[po.X + dir.X, po.Z + dir.Z].Visited == false)
                 {
-                    grid[gridXPos, gridZPos].NorthWall = false;
-                    grid[gridXPos + dir.X, gridZPos + dir.Z].SouthWall = false;
+                    if (dir == NORTHDir)
+                    {
+                        grid[po.X, po.Z].NorthWall = false;
+                        grid[po.X + dir.X, po.Z + dir.Z].SouthWall = false;
+                    }
+                    if (dir == SOUTHDir)
+                    {
+                        grid[po.X, po.Z].SouthWall = false;
+                        grid[po.X + dir.X, po.Z + dir.Z].NorthWall = false;
+                    }
+                    if (dir == WESTDir)
+                    {
+                        grid[po.X, po.Z].WestWall = false;
+                        grid[po.X + dir.X, po.Z + dir.Z].EastWall = false;
+                    }
+                    if (dir == EASTDir)
+                    {
+                        grid[po.X, po.Z].EastWall = false;
+                        grid[po.X + dir.X, po.Z + dir.Z].WestWall = false;
+                    }
+
+                    theStack.Push(tempState);
+                    List<IntVector2> tempDirs = new List<IntVector2>(directionList);
+                    shuffleDirections(tempDirs);
+                    grid[po.X + dir.X, po.Z + dir.Z].Visited = true;
+                    theStack.Push(new stackState(new IntVector2(po.X + dir.X, po.Z + dir.Z), tempDirs));
+
+                    break;
                 }
-                if (dir == SOUTHDir) //my hombre
-                {
-                    grid[gridXPos, gridZPos].SouthWall = false;
-                    grid[gridXPos + dir.X, gridZPos + dir.Z].NorthWall = false;
-                }
-                if (dir == WESTDir)
-                {
-                    grid[gridXPos, gridZPos].WestWall = false;
-                    grid[gridXPos + dir.X, gridZPos + dir.Z].EastWall = false;
-                }
-                if (dir == EASTDir)
-                {
-                    grid[gridXPos, gridZPos].EastWall = false;
-                    grid[gridXPos + dir.X, gridZPos + dir.Z].WestWall = false;
-                }
-                recursiveBackTrack(gridXPos + dir.X, gridZPos + dir.Z);
             }
         }
+
+        //the direction that got cut must be last in the stack! Or else it will not be depth-first!
+
+
+        //Now loop through neighbours. If found neighbour, call self, with neighbours position
+        //foreach (IntVector2 dir in directionList)
+        //{
+        //    if (IsDirCoordValid(new IntVector2(pos.X, pos.Z), dir) && grid[pos.X + dir.X, pos.Z + dir.Z].Visited == false)
+        //    {
+        //        if (dir == NORTHDir)
+        //        {
+        //            grid[pos.X, pos.Z].NorthWall = false;
+        //            grid[pos.X + dir.X, pos.Z + dir.Z].SouthWall = false;
+        //        }
+        //        if (dir == SOUTHDir)
+        //        {
+        //            grid[pos.X, pos.Z].SouthWall = false;
+        //            grid[pos.X + dir.X, pos.Z + dir.Z].NorthWall = false;
+        //        }
+        //        if (dir == WESTDir)
+        //        {
+        //            grid[pos.X, pos.Z].WestWall = false;
+        //            grid[pos.X + dir.X, pos.Z + dir.Z].EastWall = false;
+        //        }
+        //        if (dir == EASTDir)
+        //        {
+        //            grid[pos.X, pos.Z].EastWall = false;
+        //            grid[pos.X + dir.X, pos.Z + dir.Z].WestWall = false;
+        //        }
+        //        //theStack.Push(new IntVector2(gridXPos + dir.X, gridZPos + dir.Z));
+        //        recursiveBackTrack(new IntVector2(pos.X + dir.X, pos.Z + dir.Z));
+        //    }
+        //}
     }
 }

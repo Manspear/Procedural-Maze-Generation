@@ -165,7 +165,7 @@ Camera:
     width: 1
     height: 1
   near clip plane: 0.3
-  far clip plane: 1000
+  far clip plane: 20000
   field of view: 60
   orthographic: 0
   orthographic size: 5
@@ -249,11 +249,11 @@ MonoBehaviour:
   redCube: {fileID: 100002, guid: 6eacfa334d88fcd42ae05082885c6a6a, type: 3}
   greenCube: {fileID: 1856627314332126, guid: 3229c430fa3265c4c87c8914c86ea763, type: 2}
   pinkCube: {fileID: 1164411553477318, guid: dfc06090eac1c7845a73355065a96884, type: 2}
-  pGridX: 5
-  pGridZ: 5
+  pGridX: 128
+  pGridZ: 128
   seedNumber: 0
   randomSeed: 1
-  numberOfTestsPerResolution: 1
+  numberOfTestsPerResolution: 10
 --- !u!1 &1811023670
 GameObject:
   m_ObjectHideFlags: 0

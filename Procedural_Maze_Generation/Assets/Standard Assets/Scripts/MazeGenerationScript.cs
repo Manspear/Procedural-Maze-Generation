@@ -59,16 +59,13 @@ public class MazeGenerationScript : MonoBehaviour {
 
     // Use this for initialization
     void Start() {
-        directionCheck.Add(NORTHDir);
-        directionCheck.Add(SOUTHDir);
-        directionCheck.Add(WESTDir);
-        directionCheck.Add(EASTDir);
 
-        //gridResolutions.Add(new IntVector2(32, 32));
-        //gridResolutions.Add(new IntVector2(64, 64));//
-        //gridResolutions.Add(new IntVector2(128, 128));
+
+        gridResolutions.Add(new IntVector2(32, 32));
+        gridResolutions.Add(new IntVector2(64, 64));
+        gridResolutions.Add(new IntVector2(128, 128));
         gridResolutions.Add(new IntVector2(256, 256));
-        //gridResolutions.Add(new IntVector2(512, 512));
+        gridResolutions.Add(new IntVector2(512, 512));
 
         visualizedMaze = new GameObject[1];
         //recursiveBackTrack(0, 0);
@@ -311,24 +308,24 @@ public class MazeGenerationScript : MonoBehaviour {
 
                 for (int i = 0; i < numberOfTestsPerResolution; i++)
                 {
-                    //if (j == 0)
-                    //    InitializeRecursiveDivisionMazeCreationVariables();
-                    //else
+                    if (j == 0)
+                        InitializeRecursiveDivisionMazeCreationVariables();
+                    else
                         InitializeMazeCreationVariables();
 
-                    //switch (j)
-                    //{
-                    //    case RECURSIVEDIVISION:
-                    //        recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
-                    //        break;
-                    //    case RECURSIVEBACKTRACKER:
-                    //        recursiveBackTrack(0, 0);
-                    //        break;
-                    //    case PRIMS:
-                    //        primsAlgorithm(0, 0);
-                    //        break;
-                    //}
-                    recursiveBackTrack(new IntVector2(0,0));
+                    switch (j)
+                    {
+                        case RECURSIVEDIVISION:
+                            recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
+                            break;
+                        case RECURSIVEBACKTRACKER:
+                            recursiveBackTrack(new IntVector2(0,0));
+                            break;
+                        case PRIMS:
+                            primsAlgorithm(0, 0);
+                            break;
+                    }
+                    
 
                     startSolveTime = Time.realtimeSinceStartup;
                     solverBack solveTime = solveMaze(0, 0);
@@ -581,9 +578,23 @@ public class MazeGenerationScript : MonoBehaviour {
         }
     }
 
+    public class StackStateSolver
+    {
+        public IntVector2 pos;
+        public List<IntVector2> directions;
+        public List<IntVector2> solvingPath;
+        public List<IntVector2> visitedPath;
+        public StackStateSolver(IntVector2 pos, List<IntVector2> directions, List<IntVector2> SolvingPath, List<IntVector2> VisitedPath)
+        {
+            this.pos = pos;
+            this.directions = new List<IntVector2>(directions);
+            this.solvingPath = new List<IntVector2>(SolvingPath);
+            visitedPath = VisitedPath;
+        }
+    }
+
     List<IntVector2> solvedPath;
     List<IntVector2> triedPath;
-    List<IntVector2> directionCheck = new List<IntVector2>();
 
     solverBack solveMazeReadyForVisualization(int X, int Z, List<IntVector2> SolvingPath, List<IntVector2> VisitedPath)
     {
@@ -594,6 +605,7 @@ public class MazeGenerationScript : MonoBehaviour {
         lDirectionCheck.Add(EASTDir);
         // List<direction> new_shit = VisitedPath.co
 
+        Stack<StackStateSolver> solverStack = new Stack<StackStateSolver>();
 
         //ref no difference
 
@@ -603,64 +615,71 @@ public class MazeGenerationScript : MonoBehaviour {
         localSolvingPath.Add(new IntVector2(X, Z));
         VisitedPath.Add(new IntVector2(X, Z));
 
+        shuffleDirections(lDirectionCheck);
+
+        solverStack.Push(new StackStateSolver(new IntVector2(X, Z), lDirectionCheck, localSolvingPath, VisitedPath));
+
+        while (solverStack.Count > 0)
         {
-            IntVector2 goalCoordinate = new IntVector2(gridX - 1, gridZ - 1);
+            StackStateSolver tempStackState = solverStack.Pop();
 
-            if (X == goalCoordinate.X && Z == goalCoordinate.Z)
+            if (tempStackState.pos.X == gridX - 1 && tempStackState.pos.Z == gridZ - 1)
             {
-
-                solvedPath = localSolvingPath;
-                triedPath = VisitedPath;
-
+                solvedPath = tempStackState.solvingPath;
+                triedPath = tempStackState.visitedPath;
                 //Solver finished. Convert from seconds to milliseconds
                 return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
             }
-        }
+            bool isValidPath = false;
 
-        //enumerator - is thread on computer. Can make enumerator delayed, so that we can see the pathfinder working, stepping through the paths. Looks cool on video.
-
-        shuffleDirections(lDirectionCheck);
-        grid[X, Z].SolverVisited = true;
-        foreach (IntVector2 dir in lDirectionCheck)
-        {
-            if ((X + dir.X >= 0 && X + dir.X < gridX) && (Z + dir.Z >= 0 && Z + dir.Z < gridZ))
+            grid[tempStackState.pos.X, tempStackState.pos.Z].SolverVisited = true;
+            foreach (IntVector2 dir in tempStackState.directions)
             {
-                if (!grid[X + dir.X, Z + dir.Z].SolverVisited)
+                if (IsDirCoordValid(tempStackState.pos, dir))
                 {
-                    if (dir == NORTHDir)
+                    if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].SolverVisited)
                     {
-                        if (!grid[X + dir.X, Z + dir.Z].SouthWall && !grid[X, Z].NorthWall)
+                        if (dir == NORTHDir)
                         {
-                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
-                            if (mongo.isSolved)
-                                return mongo;
+                            if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].SouthWall && !grid[tempStackState.pos.X, tempStackState.pos.Z].NorthWall)
+                            {
+                                isValidPath = true;
+                            }
                         }
-                    }
-                    if (dir == SOUTHDir)
-                    {
-                        if (!grid[X + dir.X, Z + dir.Z].NorthWall && !grid[X, Z].SouthWall)
+                        if (dir == SOUTHDir)
                         {
-                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
-                            if (mongo.isSolved)
-                                return mongo;
+                            if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].NorthWall && !grid[tempStackState.pos.X, tempStackState.pos.Z].SouthWall)
+                            {
+                                isValidPath = true;
+                            }
                         }
-                    }
-                    if (dir == WESTDir)
-                    {
-                        if (!grid[X + dir.X, Z + dir.Z].EastWall && !grid[X, Z].WestWall)
+                        if (dir == WESTDir)
                         {
-                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
-                            if (mongo.isSolved)
-                                return mongo;
+                            if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].EastWall && !grid[tempStackState.pos.X, tempStackState.pos.Z].WestWall)
+                            {
+                                isValidPath = true;
+                            }
                         }
-                    }
-                    if (dir == EASTDir)
-                    {
-                        if (!grid[X + dir.X, Z + dir.Z].WestWall && !grid[X, Z].EastWall)
+                        if (dir == EASTDir)
                         {
-                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
-                            if (mongo.isSolved)
-                                return mongo;
+                            if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].WestWall && !grid[tempStackState.pos.X, tempStackState.pos.Z].EastWall)
+                            {
+                                isValidPath = true;
+                            }
+                        }
+                        if(isValidPath)
+                        {
+                            solverStack.Push(tempStackState);
+
+                            shuffleDirections(lDirectionCheck);
+                            List<IntVector2> lSolvingPath = new List<IntVector2>(tempStackState.solvingPath);
+                            List<IntVector2> lVisitedPath = tempStackState.visitedPath;
+                            lSolvingPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
+                            lVisitedPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
+
+                            solverStack.Push(new StackStateSolver(new IntVector2(tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z), lDirectionCheck, lSolvingPath, lVisitedPath));
+
+                            break;
                         }
                     }
                 }
@@ -669,61 +688,190 @@ public class MazeGenerationScript : MonoBehaviour {
         return new solverBack(false, 0);
     }
 
+//    List<IntVector2> localSolvingPath = new List<IntVector2>(SolvingPath);
+
+//    localSolvingPath.Add(new IntVector2(X, Z));
+//        VisitedPath.Add(new IntVector2(X, Z));
+
+//        {
+//            IntVector2 goalCoordinate = new IntVector2(gridX - 1, gridZ - 1);
+
+//            if (X == goalCoordinate.X && Z == goalCoordinate.Z)
+//            {
+
+//                solvedPath = localSolvingPath;
+//                triedPath = VisitedPath;
+
+//                //Solver finished. Convert from seconds to milliseconds
+//                return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
+//            }
+//        }
+
+//        //enumerator - is thread on computer. Can make enumerator delayed, so that we can see the pathfinder working, stepping through the paths. Looks cool on video.
+
+//        shuffleDirections(lDirectionCheck);
+//grid[X, Z].SolverVisited = true;
+//        foreach (IntVector2 dir in lDirectionCheck)
+//        {
+//            if ((X + dir.X >= 0 && X + dir.X<gridX) && (Z + dir.Z >= 0 && Z + dir.Z<gridZ))
+//            {
+//                if (!grid[X + dir.X, Z + dir.Z].SolverVisited)
+//                {
+//                    if (dir == NORTHDir)
+//                    {
+//                        if (!grid[X + dir.X, Z + dir.Z].SouthWall && !grid[X, Z].NorthWall)
+//                        {
+//                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+//                            if (mongo.isSolved)
+//                                return mongo;
+//                        }
+//                    }
+//                    if (dir == SOUTHDir)
+//                    {
+//                        if (!grid[X + dir.X, Z + dir.Z].NorthWall && !grid[X, Z].SouthWall)
+//                        {
+//                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+//                            if (mongo.isSolved)
+//                                return mongo;
+//                        }
+//                    }
+//                    if (dir == WESTDir)
+//                    {
+//                        if (!grid[X + dir.X, Z + dir.Z].EastWall && !grid[X, Z].WestWall)
+//                        {
+//                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+//                            if (mongo.isSolved)
+//                                return mongo;
+//                        }
+//                    }
+//                    if (dir == EASTDir)
+//                    {
+//                        if (!grid[X + dir.X, Z + dir.Z].WestWall && !grid[X, Z].EastWall)
+//                        {
+//                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+//                            if (mongo.isSolved)
+//                                return mongo;
+//                        }
+//                    }
+//                }
+//            }
+//        }
+
     solverBack solveMaze(int X, int Z)
     {
-        //If at goal
-        if (X == gridX - 1 && Z == gridZ - 1)
-        {
-            //Solver finished. Convert from seconds to milliseconds
-            return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
-        }
+        List<IntVector2> directionCheck = new List<IntVector2>();
+        directionCheck.Add(NORTHDir);
+        directionCheck.Add(SOUTHDir);
+        directionCheck.Add(WESTDir);
+        directionCheck.Add(EASTDir);
+        shuffleDirections(directionCheck);
 
-        grid[X, Z].SolverVisited = true;
-        foreach (IntVector2 dir in directionCheck)
+        Stack<stackState> recStack = new Stack<stackState>();
+        recStack.Push(new stackState(new IntVector2(X, Z), directionCheck));
+        while (recStack.Count > 0)
         {
-            if ((X + dir.X >= 0 && X + dir.X < gridX) && (Z + dir.Z >= 0 && Z + dir.Z < gridZ))
+            stackState tempState = recStack.Pop();
+
+            if (tempState.pos.X == gridX - 1 && tempState.pos.Z == gridZ - 1)
             {
-                if (!grid[X + dir.X, Z + dir.Z].SolverVisited)
+                //Solver finished. Convert from seconds to milliseconds
+                return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
+            }
+
+            bool isValidPath = false;
+            grid[tempState.pos.X, tempState.pos.Z].SolverVisited = true;
+            foreach (IntVector2 dir in tempState.directions)
+            {
+                if ((tempState.pos.X + dir.X >= 0 && tempState.pos.X + dir.X < gridX) && (tempState.pos.Z + dir.Z >= 0 && tempState.pos.Z + dir.Z < gridZ))
                 {
-                    if (dir == NORTHDir)
+                    if (!grid[tempState.pos.X + dir.X, tempState.pos.Z + dir.Z].SolverVisited)
                     {
-                        if (!grid[X + dir.X, Z + dir.Z].SouthWall && !grid[X, Z].NorthWall)
+                        if (dir == NORTHDir)
                         {
-                            solverBack mongo = solveMaze(X + dir.X, Z + dir.Z);
-                            if (mongo.isSolved)
-                                return mongo;
+                            if (!grid[tempState.pos.X + dir.X, tempState.pos.Z + dir.Z].SouthWall && !grid[tempState.pos.X, tempState.pos.Z].NorthWall)
+                            {
+                                isValidPath = true;
+                            }
                         }
-                    }
-                    if (dir == SOUTHDir)
-                    {
-                        if (!grid[X + dir.X, Z + dir.Z].NorthWall && !grid[X, Z].SouthWall)
+                        if (dir == SOUTHDir)
                         {
-                            solverBack mongo = solveMaze(X + dir.X, Z + dir.Z);
-                            if (mongo.isSolved)
-                                return mongo;
+                            if (!grid[tempState.pos.X + dir.X, tempState.pos.Z + dir.Z].NorthWall && !grid[tempState.pos.X, tempState.pos.Z].SouthWall)
+                            {
+                                isValidPath = true;
+                            }
                         }
-                    }
-                    if (dir == WESTDir)
-                    {
-                        if (!grid[X + dir.X, Z + dir.Z].EastWall && !grid[X, Z].WestWall)
+                        if (dir == WESTDir)
                         {
-                            solverBack mongo = solveMaze(X + dir.X, Z + dir.Z);
-                            if (mongo.isSolved)
-                                return mongo;
+                            if (!grid[tempState.pos.X + dir.X, tempState.pos.Z + dir.Z].EastWall && !grid[tempState.pos.X, tempState.pos.Z].WestWall)
+                            {
+                                isValidPath = true;
+                            }
                         }
-                    }
-                    if (dir == EASTDir)
-                    {
-                        if (!grid[X + dir.X, Z + dir.Z].WestWall && !grid[X, Z].EastWall)
+                        if (dir == EASTDir)
                         {
-                            solverBack mongo = solveMaze(X + dir.X, Z + dir.Z);
-                            if (mongo.isSolved)
-                                return mongo;
+                            if (!grid[tempState.pos.X + dir.X, tempState.pos.Z + dir.Z].WestWall && !grid[tempState.pos.X, tempState.pos.Z].EastWall)
+                            {
+                                isValidPath = true;
+                            }
+                        }
+                        if(isValidPath)
+                        {
+                            recStack.Push(tempState);
+                            shuffleDirections(directionCheck);
+                            recStack.Push(new stackState(new IntVector2(tempState.pos.X + dir.X, tempState.pos.Z + dir.Z), directionCheck));
+                            break;
                         }
                     }
                 }
             }
         }
+        //grid[X, Z].SolverVisited = true;
+        //foreach (IntVector2 dir in directionCheck)
+        //{
+        //    if ((X + dir.X >= 0 && X + dir.X < gridX) && (Z + dir.Z >= 0 && Z + dir.Z < gridZ))
+        //    {
+        //        if (!grid[X + dir.X, Z + dir.Z].SolverVisited)
+        //        {
+        //            if (dir == NORTHDir)
+        //            {
+        //                if (!grid[X + dir.X, Z + dir.Z].SouthWall && !grid[X, Z].NorthWall)
+        //                {
+        //                    solverBack mongo = solveMaze(X + dir.X, Z + dir.Z);
+        //                    if (mongo.isSolved)
+        //                        return mongo;
+        //                }
+        //            }
+        //            if (dir == SOUTHDir)
+        //            {
+        //                if (!grid[X + dir.X, Z + dir.Z].NorthWall && !grid[X, Z].SouthWall)
+        //                {
+        //                    solverBack mongo = solveMaze(X + dir.X, Z + dir.Z);
+        //                    if (mongo.isSolved)
+        //                        return mongo;
+        //                }
+        //            }
+        //            if (dir == WESTDir)
+        //            {
+        //                if (!grid[X + dir.X, Z + dir.Z].EastWall && !grid[X, Z].WestWall)
+        //                {
+        //                    solverBack mongo = solveMaze(X + dir.X, Z + dir.Z);
+        //                    if (mongo.isSolved)
+        //                        return mongo;
+        //                }
+        //            }
+        //            if (dir == EASTDir)
+        //            {
+        //                if (!grid[X + dir.X, Z + dir.Z].WestWall && !grid[X, Z].EastWall)
+        //                {
+        //                    solverBack mongo = solveMaze(X + dir.X, Z + dir.Z);
+        //                    if (mongo.isSolved)
+        //                        return mongo;
+        //                }
+        //            }
+        //        }
+        //    }
+        //}
+
         return new solverBack(false, 0);
     }
 
@@ -1060,7 +1208,7 @@ public class MazeGenerationScript : MonoBehaviour {
         public stackState(IntVector2 pos, List<IntVector2> directions)
         {
             this.pos = pos;
-            this.directions = directions;
+            this.directions = new List<IntVector2>(directions);
         }
     }
 

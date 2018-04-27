@@ -247,10 +247,10 @@ MonoBehaviour:
   westWall: {fileID: 100002, guid: 123f2d1a37c7d7a4bbeaece4b9ad60a2, type: 3}
   eastWall: {fileID: 100002, guid: 8f9c69ee5d889334885f9176ac55ea5a, type: 3}
   redCube: {fileID: 100002, guid: 6eacfa334d88fcd42ae05082885c6a6a, type: 3}
-  greenCube: {fileID: 1856627314332126, guid: 3229c430fa3265c4c87c8914c86ea763, type: 2}
+  greenCube: {fileID: 100000, guid: 99b8a64cedb9cdc42ae05fccca0a2dd1, type: 3}
   pinkCube: {fileID: 1164411553477318, guid: dfc06090eac1c7845a73355065a96884, type: 2}
-  pGridX: 128
-  pGridZ: 128
+  pGridX: 32
+  pGridZ: 32
   seedNumber: 0
   randomSeed: 1
   numberOfTestsPerResolution: 10

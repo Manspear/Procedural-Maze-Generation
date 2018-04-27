@@ -62,10 +62,10 @@ public class MazeGenerationScript : MonoBehaviour {
 
 
         gridResolutions.Add(new IntVector2(32, 32));
-        gridResolutions.Add(new IntVector2(64, 64));
-        gridResolutions.Add(new IntVector2(128, 128));
-        gridResolutions.Add(new IntVector2(256, 256));
-        gridResolutions.Add(new IntVector2(512, 512));
+        //gridResolutions.Add(new IntVector2(64, 64));
+        //gridResolutions.Add(new IntVector2(128, 128));
+        //gridResolutions.Add(new IntVector2(256, 256));
+        //gridResolutions.Add(new IntVector2(512, 512));
 
         visualizedMaze = new GameObject[1];
         //recursiveBackTrack(0, 0);
@@ -129,6 +129,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
     void writeStats(int mazeAlgorithm, IntVector2 gridResolution, string statisticsPath, float solveTime, int seed)
     {
+        //"Seed, Maze Type, Resolution, Solving Time, Solving Path Length, Tried Nodes, 1 Branches, 2 Branches, 3 Branches, 4 Branches";
         //Begin Statwriting
         string statString = "";
         statString += seed;
@@ -142,6 +143,10 @@ public class MazeGenerationScript : MonoBehaviour {
         statString += "," + gridResolution.X + "x" + gridResolution.Z;
 
         statString += "," + solveTime;
+
+        statString += "," + solvedPath.Count;
+                                   //
+        statString += "," + triedPath.Count;
 
         int[] pathBranchDistribution = new int[4];
         int numBranches = 0;
@@ -199,7 +204,7 @@ public class MazeGenerationScript : MonoBehaviour {
     List<string> averageStringList = new List<string>();
     void writeAverageStats(int mazeAlgorithm, IntVector2 gridResolution, string statisticsPath)
     {
-        //Begin Statwriting
+        //Begin Statwriting 
         string statString = "ALL";
         if (mazeAlgorithm == RECURSIVEDIVISION)
             statString += ",RecursiveDivision";
@@ -216,6 +221,9 @@ public class MazeGenerationScript : MonoBehaviour {
         }
 
         statString += "," + totTime / (float)allSolvingTimes.Count;
+
+        statString += "," + (float)totalLengthOfSolvingPaths / (float)numberOfTestsPerResolution;
+        statString += "," + (float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution;
 
         for (int i = 0; i < 4; i++)
         {
@@ -257,7 +265,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
     string generateStatHeaderString()
     {
-        string statString = "Seed, Maze Type, Resolution, Solving Time, 1 Branches, 2 Branches, 3 Branches, 4 Branches";
+        string statString = "Seed, Maze Type, Resolution, Solving Time, Solving Path Length, Tried Nodes, 1 Branches, 2 Branches, 3 Branches, 4 Branches";
 
         foreach (IntVector2 res in gridResolutions)
         {
@@ -271,6 +279,8 @@ public class MazeGenerationScript : MonoBehaviour {
         return statString;
     }
 
+    int totalLengthOfSolvingPaths = 0;
+    int totalLengthOfTriedPaths = 0;
     void doTest()
     {
         File.WriteAllText(testFilePath, string.Empty);
@@ -328,9 +338,10 @@ public class MazeGenerationScript : MonoBehaviour {
                     
 
                     startSolveTime = Time.realtimeSinceStartup;
-                    solverBack solveTime = solveMaze(0, 0);
-                    //solvingTime.Add(solveTime.solveTime);
-                    //seedNumbers.Add(seedNumber);
+                    solverBack solveTime = fastSolveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
+                    totalLengthOfSolvingPaths += solvedPath.Count;
+                    totalLengthOfTriedPaths += triedPath.Count;
+
                     AddPathLengths();
                     allSolvingTimes.Add(solveTime.solveTime);
                     writeDataToFile(pathLengths, solveTime.solveTime, resolution, j, seedNumber, testFilePath);
@@ -340,6 +351,8 @@ public class MazeGenerationScript : MonoBehaviour {
                 }
                 writeAverageStats(j, resolution, statisticsFilePath);
             }
+            totalLengthOfSolvingPaths = 0;
+            totalLengthOfTriedPaths = 0;
         }
         StreamWriter stat2Writer = new StreamWriter(statisticsFilePath, true);
         stat2Writer.WriteLine("AVERAGE STATS");
@@ -352,7 +365,7 @@ public class MazeGenerationScript : MonoBehaviour {
     }
 
     float startSolveTime;
-
+    Coroutine solverRoutine;
     void Update()
     {
         float temp = Time.realtimeSinceStartup;
@@ -375,7 +388,13 @@ public class MazeGenerationScript : MonoBehaviour {
             recursiveBackTrack(new IntVector2(0, 0));
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
+            if(solverRoutine != null)
+                StopCoroutine(solverRoutine);
+            if (isQuickSolving)
+                fastSolveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
+            else
+                solverRoutine = StartCoroutine(solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>()));
+
             visualizeMazeSolver();
             AddPathLengths();
         }
@@ -392,9 +411,16 @@ public class MazeGenerationScript : MonoBehaviour {
             gridZ = pGridZ;
             InitializeMazeCreationVariables();
             primsAlgorithm(0, 0);
+            //StartCoroutine(primsAlgorithmCoroutine(0, 0));
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
+            if(solverRoutine != null)
+                StopCoroutine(solverRoutine);
+
+            if (isQuickSolving)
+                fastSolveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
+            else
+                solverRoutine = StartCoroutine(solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>()));
 
             visualizeMazeSolver();
         }
@@ -412,11 +438,24 @@ public class MazeGenerationScript : MonoBehaviour {
             recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
+            if(solverRoutine != null)
+                StopCoroutine(solverRoutine);
+
+            if(isQuickSolving)
+                fastSolveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
+            else
+                solverRoutine = StartCoroutine(solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>()));
+
             visualizeMazeSolver();
         }
-    }
 
+        if (Input.GetKeyDown("f"))
+        {
+            isQuickSolving = !isQuickSolving;
+        }
+
+    }
+    bool isQuickSolving = false;
 
     List<int> pathLengths = new List<int>();
 
@@ -596,7 +635,7 @@ public class MazeGenerationScript : MonoBehaviour {
     List<IntVector2> solvedPath;
     List<IntVector2> triedPath;
 
-    solverBack solveMazeReadyForVisualization(int X, int Z, List<IntVector2> SolvingPath, List<IntVector2> VisitedPath)
+    IEnumerator solveMazeReadyForVisualization(int X, int Z, List<IntVector2> SolvingPath, List<IntVector2> VisitedPath)
     {
         List<IntVector2> lDirectionCheck = new List<IntVector2>();
         lDirectionCheck.Add(NORTHDir);
@@ -622,13 +661,16 @@ public class MazeGenerationScript : MonoBehaviour {
         while (solverStack.Count > 0)
         {
             StackStateSolver tempStackState = solverStack.Pop();
+            solvedPath = tempStackState.solvingPath;
+            triedPath = tempStackState.visitedPath;
 
             if (tempStackState.pos.X == gridX - 1 && tempStackState.pos.Z == gridZ - 1)
             {
                 solvedPath = tempStackState.solvingPath;
                 triedPath = tempStackState.visitedPath;
                 //Solver finished. Convert from seconds to milliseconds
-                return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
+                //return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
+                break;
             }
             bool isValidPath = false;
 
@@ -670,13 +712,107 @@ public class MazeGenerationScript : MonoBehaviour {
                         if(isValidPath)
                         {
                             solverStack.Push(tempStackState);
-
                             shuffleDirections(lDirectionCheck);
                             List<IntVector2> lSolvingPath = new List<IntVector2>(tempStackState.solvingPath);
                             List<IntVector2> lVisitedPath = tempStackState.visitedPath;
                             lSolvingPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
                             lVisitedPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
+                            solverStack.Push(new StackStateSolver(new IntVector2(tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z), lDirectionCheck, lSolvingPath, lVisitedPath));
 
+                            break;
+                        }
+                    }
+                }
+            }
+            visualizeMazeSolver();
+            yield return new WaitForSeconds(0.00001f);
+        }
+        //return new solverBack(false, 0);
+        yield return null;
+    }
+
+    solverBack fastSolveMazeReadyForVisualization(int X, int Z, List<IntVector2> SolvingPath, List<IntVector2> VisitedPath)
+    {
+        List<IntVector2> lDirectionCheck = new List<IntVector2>();
+        lDirectionCheck.Add(NORTHDir);
+        lDirectionCheck.Add(SOUTHDir);
+        lDirectionCheck.Add(WESTDir);
+        lDirectionCheck.Add(EASTDir);
+        // List<direction> new_shit = VisitedPath.co
+        
+        Stack<StackStateSolver> solverStack = new Stack<StackStateSolver>();
+
+        //ref no difference
+
+        //is VisitedPath a pointer? Would explain why all paths taken is added. 
+        List<IntVector2> localSolvingPath = new List<IntVector2>(SolvingPath);
+
+        localSolvingPath.Add(new IntVector2(X, Z));
+        VisitedPath.Add(new IntVector2(X, Z));
+
+        shuffleDirections(lDirectionCheck);
+
+        solverStack.Push(new StackStateSolver(new IntVector2(X, Z), lDirectionCheck, localSolvingPath, VisitedPath));
+
+        while (solverStack.Count > 0)
+        {
+            StackStateSolver tempStackState = solverStack.Pop();
+            solvedPath = tempStackState.solvingPath;
+            triedPath = tempStackState.visitedPath;
+
+            if (tempStackState.pos.X == gridX - 1 && tempStackState.pos.Z == gridZ - 1)
+            {
+                solvedPath = tempStackState.solvingPath;
+                triedPath = tempStackState.visitedPath;
+                //Solver finished. Convert from seconds to milliseconds
+                //return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
+                return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
+            }
+            bool isValidPath = false;
+
+            grid[tempStackState.pos.X, tempStackState.pos.Z].SolverVisited = true;
+            foreach (IntVector2 dir in tempStackState.directions)
+            {
+                if (IsDirCoordValid(tempStackState.pos, dir))
+                {
+                    if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].SolverVisited)
+                    {
+                        if (dir == NORTHDir)
+                        {
+                            if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].SouthWall && !grid[tempStackState.pos.X, tempStackState.pos.Z].NorthWall)
+                            {
+                                isValidPath = true;
+                            }
+                        }
+                        if (dir == SOUTHDir)
+                        {
+                            if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].NorthWall && !grid[tempStackState.pos.X, tempStackState.pos.Z].SouthWall)
+                            {
+                                isValidPath = true;
+                            }
+                        }
+                        if (dir == WESTDir)
+                        {
+                            if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].EastWall && !grid[tempStackState.pos.X, tempStackState.pos.Z].WestWall)
+                            {
+                                isValidPath = true;
+                            }
+                        }
+                        if (dir == EASTDir)
+                        {
+                            if (!grid[tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z].WestWall && !grid[tempStackState.pos.X, tempStackState.pos.Z].EastWall)
+                            {
+                                isValidPath = true;
+                            }
+                        }
+                        if (isValidPath)
+                        {
+                            solverStack.Push(tempStackState);
+                            shuffleDirections(lDirectionCheck);
+                            List<IntVector2> lSolvingPath = new List<IntVector2>(tempStackState.solvingPath);
+                            List<IntVector2> lVisitedPath = tempStackState.visitedPath;
+                            lSolvingPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
+                            lVisitedPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
                             solverStack.Push(new StackStateSolver(new IntVector2(tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z), lDirectionCheck, lSolvingPath, lVisitedPath));
 
                             break;
@@ -688,74 +824,74 @@ public class MazeGenerationScript : MonoBehaviour {
         return new solverBack(false, 0);
     }
 
-//    List<IntVector2> localSolvingPath = new List<IntVector2>(SolvingPath);
+    //    List<IntVector2> localSolvingPath = new List<IntVector2>(SolvingPath);
 
-//    localSolvingPath.Add(new IntVector2(X, Z));
-//        VisitedPath.Add(new IntVector2(X, Z));
+    //    localSolvingPath.Add(new IntVector2(X, Z));
+    //        VisitedPath.Add(new IntVector2(X, Z));
 
-//        {
-//            IntVector2 goalCoordinate = new IntVector2(gridX - 1, gridZ - 1);
+    //        {
+    //            IntVector2 goalCoordinate = new IntVector2(gridX - 1, gridZ - 1);
 
-//            if (X == goalCoordinate.X && Z == goalCoordinate.Z)
-//            {
+    //            if (X == goalCoordinate.X && Z == goalCoordinate.Z)
+    //            {
 
-//                solvedPath = localSolvingPath;
-//                triedPath = VisitedPath;
+    //                solvedPath = localSolvingPath;
+    //                triedPath = VisitedPath;
 
-//                //Solver finished. Convert from seconds to milliseconds
-//                return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
-//            }
-//        }
+    //                //Solver finished. Convert from seconds to milliseconds
+    //                return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
+    //            }
+    //        }
 
-//        //enumerator - is thread on computer. Can make enumerator delayed, so that we can see the pathfinder working, stepping through the paths. Looks cool on video.
+    //        //enumerator - is thread on computer. Can make enumerator delayed, so that we can see the pathfinder working, stepping through the paths. Looks cool on video.
 
-//        shuffleDirections(lDirectionCheck);
-//grid[X, Z].SolverVisited = true;
-//        foreach (IntVector2 dir in lDirectionCheck)
-//        {
-//            if ((X + dir.X >= 0 && X + dir.X<gridX) && (Z + dir.Z >= 0 && Z + dir.Z<gridZ))
-//            {
-//                if (!grid[X + dir.X, Z + dir.Z].SolverVisited)
-//                {
-//                    if (dir == NORTHDir)
-//                    {
-//                        if (!grid[X + dir.X, Z + dir.Z].SouthWall && !grid[X, Z].NorthWall)
-//                        {
-//                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
-//                            if (mongo.isSolved)
-//                                return mongo;
-//                        }
-//                    }
-//                    if (dir == SOUTHDir)
-//                    {
-//                        if (!grid[X + dir.X, Z + dir.Z].NorthWall && !grid[X, Z].SouthWall)
-//                        {
-//                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
-//                            if (mongo.isSolved)
-//                                return mongo;
-//                        }
-//                    }
-//                    if (dir == WESTDir)
-//                    {
-//                        if (!grid[X + dir.X, Z + dir.Z].EastWall && !grid[X, Z].WestWall)
-//                        {
-//                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
-//                            if (mongo.isSolved)
-//                                return mongo;
-//                        }
-//                    }
-//                    if (dir == EASTDir)
-//                    {
-//                        if (!grid[X + dir.X, Z + dir.Z].WestWall && !grid[X, Z].EastWall)
-//                        {
-//                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
-//                            if (mongo.isSolved)
-//                                return mongo;
-//                        }
-//                    }
-//                }
-//            }
-//        }
+    //        shuffleDirections(lDirectionCheck);
+    //grid[X, Z].SolverVisited = true;
+    //        foreach (IntVector2 dir in lDirectionCheck)
+    //        {
+    //            if ((X + dir.X >= 0 && X + dir.X<gridX) && (Z + dir.Z >= 0 && Z + dir.Z<gridZ))
+    //            {
+    //                if (!grid[X + dir.X, Z + dir.Z].SolverVisited)
+    //                {
+    //                    if (dir == NORTHDir)
+    //                    {
+    //                        if (!grid[X + dir.X, Z + dir.Z].SouthWall && !grid[X, Z].NorthWall)
+    //                        {
+    //                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+    //                            if (mongo.isSolved)
+    //                                return mongo;
+    //                        }
+    //                    }
+    //                    if (dir == SOUTHDir)
+    //                    {
+    //                        if (!grid[X + dir.X, Z + dir.Z].NorthWall && !grid[X, Z].SouthWall)
+    //                        {
+    //                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+    //                            if (mongo.isSolved)
+    //                                return mongo;
+    //                        }
+    //                    }
+    //                    if (dir == WESTDir)
+    //                    {
+    //                        if (!grid[X + dir.X, Z + dir.Z].EastWall && !grid[X, Z].WestWall)
+    //                        {
+    //                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+    //                            if (mongo.isSolved)
+    //                                return mongo;
+    //                        }
+    //                    }
+    //                    if (dir == EASTDir)
+    //                    {
+    //                        if (!grid[X + dir.X, Z + dir.Z].WestWall && !grid[X, Z].EastWall)
+    //                        {
+    //                            solverBack mongo = solveMazeReadyForVisualization(X + dir.X, Z + dir.Z, localSolvingPath, VisitedPath);
+    //                            if (mongo.isSolved)
+    //                                return mongo;
+    //                        }
+    //                    }
+    //                }
+    //            }
+    //        }
 
     solverBack solveMaze(int X, int Z)
     {
@@ -1126,6 +1262,82 @@ public class MazeGenerationScript : MonoBehaviour {
         directionList.Add(SOUTHDir);
         directionList.Add(WESTDir);
         directionList.Add(EASTDir);
+
+        //frontier.Add(new mazeLoc(startX, startZ));
+        inCells.Add(new mazeLoc(startX, startZ));
+        grid[startX, startZ].Visited = true;
+
+        foreach (IntVector2 dir in directionList)
+        {
+            //Add valid adjacent cells to frontier. 
+            if ((startX + dir.X >= 0 && (startX + dir.X < gridX)) && (startZ + dir.Z >= 0 && startZ + dir.Z < gridZ))
+            {
+                if (grid[startX + dir.X, startZ + dir.Z].Visited == false && grid[startX + dir.X, startZ + dir.Z].AddedToFrontier == false)
+                {
+                    grid[startX + dir.X, startZ + dir.Z].AddedToFrontier = true;
+                    frontier.Add(new IntVector2(startX + dir.X, startZ + dir.Z));
+                }
+            }
+        }
+
+        visualizePrimSolver(frontier, new IntVector2(0, 0));
+
+        while (frontier.Count > 0)
+        {
+            //Get current frontier cell coordinate
+            shuffleDirections(directionList);
+            int CFI = Random.Range(0, frontier.Count);
+            //A) Choose random frontier cell from frontier-list
+            IntVector2 CFC = new IntVector2(frontier[CFI].X, frontier[CFI].Z);
+            grid[CFC.X, CFC.Z].Visited = true;
+            //frontier.Remove(frontier[CFI]);
+
+            foreach (IntVector2 dir in directionList)
+            {
+                //Add valid adjacent cells to frontier. 
+                if (IsDirCoordValid(CFC, dir))
+                {
+                    if (grid[CFC.X + dir.X, CFC.Z + dir.Z].Visited == false && grid[CFC.X + dir.X, CFC.Z + dir.Z].AddedToFrontier == false)
+                    {
+                        grid[CFC.X + dir.X, CFC.Z + dir.Z].AddedToFrontier = true;
+                        frontier.Add(new IntVector2(CFC.X + dir.X, CFC.Z + dir.Z));
+                    }
+                }
+            }
+
+            foreach (IntVector2 dir in directionList)
+            {
+                //If cell adjacent to this frontier has already been visited, carve path to it. (only once per frontier-loop)
+                if (IsDirCoordValid(CFC, dir))
+                {
+                    if (grid[CFC.X + dir.X, CFC.Z + dir.Z].Visited == true)
+                    {
+                        carveInDirection(dir, CFC.X, CFC.Z);
+                        break;
+                    }
+                }
+            }
+            frontier.RemoveAt(CFI);
+        }
+        
+    }
+
+    IEnumerator primsAlgorithmCoroutine(int startX, int startZ)
+    {
+        //start from a nodes, all adjacent nodes are frontier.
+        //Pick a random frontier node, add it to the maze. Now add the adjacent nodes to the new node as frontier too.
+        //rinse repeat until no more frontier cells. 
+
+        List<IntVector2> frontier = new List<IntVector2>();
+        List<mazeLoc> inCells = new List<mazeLoc>();
+
+        //Add directions
+        List<IntVector2> directionList = new List<IntVector2>();
+        //initializing list of directions 
+        directionList.Add(NORTHDir);
+        directionList.Add(SOUTHDir);
+        directionList.Add(WESTDir);
+        directionList.Add(EASTDir);
         
         //frontier.Add(new mazeLoc(startX, startZ));
         inCells.Add(new mazeLoc(startX, startZ));
@@ -1185,9 +1397,15 @@ public class MazeGenerationScript : MonoBehaviour {
             frontier.RemoveAt(CFI);
             //if (frontier.Remove(CFC))
             //    print(CFC.X + " " + CFC.Z);
-            //visualizeMaze();
-            //visualizePrimSolver(frontier, CFC);
+            
+            visualizeMaze();
+            visualizePrimSolver(frontier, CFC);
+
+            yield return new WaitForSeconds(0.00001f);
+            
+                
         }
+        yield return null;
     }
 
     bool IsDirCoordValid(IntVector2 coordinate, IntVector2 dir)

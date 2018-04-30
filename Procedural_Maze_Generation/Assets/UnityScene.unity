@@ -253,7 +253,7 @@ MonoBehaviour:
   pGridZ: 32
   seedNumber: 0
   randomSeed: 1
-  numberOfTestsPerResolution: 10
+  numberOfTestsPerResolution: 100
 --- !u!1 &1811023670
 GameObject:
   m_ObjectHideFlags: 0

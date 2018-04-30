@@ -62,9 +62,9 @@ public class MazeGenerationScript : MonoBehaviour {
 
 
         gridResolutions.Add(new IntVector2(32, 32));
-        //gridResolutions.Add(new IntVector2(64, 64));
-        //gridResolutions.Add(new IntVector2(128, 128));
-        //gridResolutions.Add(new IntVector2(256, 256));
+        gridResolutions.Add(new IntVector2(64, 64));
+        gridResolutions.Add(new IntVector2(128, 128));
+        gridResolutions.Add(new IntVector2(256, 256));
         //gridResolutions.Add(new IntVector2(512, 512));
 
         visualizedMaze = new GameObject[1];
@@ -144,7 +144,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
         statString += "," + solveTime;
 
-        statString += "," + solvedPath.Count;
+        statString += "," + solvedPath.Count + " - " + ((float)solvedPath.Count / (float)triedPath.Count) * 100f + "%";
                                    //
         statString += "," + triedPath.Count;
 
@@ -222,7 +222,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
         statString += "," + totTime / (float)allSolvingTimes.Count;
 
-        statString += "," + (float)totalLengthOfSolvingPaths / (float)numberOfTestsPerResolution;
+        statString += "," + ((((float)totalLengthOfSolvingPaths / ((float)numberOfTestsPerResolution)) / ((float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution))) * 100f + "%" + " (" + (float)totalLengthOfSolvingPaths / (float)numberOfTestsPerResolution + ")";
         statString += "," + (float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution;
 
         for (int i = 0; i < 4; i++)

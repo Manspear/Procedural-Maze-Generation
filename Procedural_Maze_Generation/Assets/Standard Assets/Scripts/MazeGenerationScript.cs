@@ -144,8 +144,8 @@ public class MazeGenerationScript : MonoBehaviour {
 
         statString += "," + solveTime;
 
-        statString += "," + solvedPath.Count + " - " + ((float)solvedPath.Count / (float)triedPath.Count) * 100f + "%";
-                                   //
+        statString += "," + ((float)solvedPath.Count / (float)triedPath.Count) * 100f + "%";
+        statString += "," + solvedPath.Count;
         statString += "," + triedPath.Count;
 
         int[] pathBranchDistribution = new int[4];
@@ -187,6 +187,7 @@ public class MazeGenerationScript : MonoBehaviour {
         {
             statString += "," + ((corridorLengths[i] / (float)pathLengths.Count) * 100) + "%";
         }
+
         while(allCorridorLengths.Count < corridorLengths.Length)
             allCorridorLengths.Add(0);
 
@@ -196,9 +197,9 @@ public class MazeGenerationScript : MonoBehaviour {
 
             corridorLengths[i] = 0;
         }
+
         StreamWriter statWriter = new StreamWriter(statisticsPath, true);
         statWriter.WriteLine(statString);
-
         statWriter.Close();
     }
     List<string> averageStringList = new List<string>();
@@ -222,7 +223,8 @@ public class MazeGenerationScript : MonoBehaviour {
 
         statString += "," + totTime / (float)allSolvingTimes.Count;
 
-        statString += "," + ((((float)totalLengthOfSolvingPaths / ((float)numberOfTestsPerResolution)) / ((float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution))) * 100f + "%" + " (" + (float)totalLengthOfSolvingPaths / (float)numberOfTestsPerResolution + ")";
+        statString += "," + ((((float)totalLengthOfSolvingPaths / ((float)numberOfTestsPerResolution)) / ((float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution))) * 100f + "%" ;
+        statString += "," + (float)totalLengthOfSolvingPaths / (float)numberOfTestsPerResolution;
         statString += "," + (float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution;
 
         for (int i = 0; i < 4; i++)
@@ -265,7 +267,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
     string generateStatHeaderString()
     {
-        string statString = "Seed, Maze Type, Resolution, Solving Time, Solving Path Length, Tried Nodes, 1 Branches, 2 Branches, 3 Branches, 4 Branches";
+        string statString = "Seed, Maze Type, Resolution, Solving Time, Solving Path Percentage, Solving Path Length, Tried Nodes, 1 Branches, 2 Branches, 3 Branches, 4 Branches";
 
         foreach (IntVector2 res in gridResolutions)
         {
@@ -370,7 +372,7 @@ public class MazeGenerationScript : MonoBehaviour {
     {
         float temp = Time.realtimeSinceStartup;
 
-        if (Input.GetKeyDown("t"))
+        if (Input.GetKeyDown("k"))
         {
             doTest();
         }        
@@ -455,7 +457,7 @@ public class MazeGenerationScript : MonoBehaviour {
         }
 
     }
-    bool isQuickSolving = false;
+    bool isQuickSolving = true;
 
     List<int> pathLengths = new List<int>();
 
@@ -762,6 +764,8 @@ public class MazeGenerationScript : MonoBehaviour {
 
             if (tempStackState.pos.X == gridX - 1 && tempStackState.pos.Z == gridZ - 1)
             {
+                tempStackState.solvingPath.Add(tempStackState.pos);
+                tempStackState.visitedPath.Add(tempStackState.pos);
                 solvedPath = tempStackState.solvingPath;
                 triedPath = tempStackState.visitedPath;
                 //Solver finished. Convert from seconds to milliseconds

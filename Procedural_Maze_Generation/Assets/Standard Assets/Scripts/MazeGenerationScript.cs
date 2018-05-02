@@ -57,7 +57,6 @@ public class MazeGenerationScript : MonoBehaviour {
         }
     }
 
-    // Use this for initialization
     void Start() {
 
 
@@ -68,10 +67,6 @@ public class MazeGenerationScript : MonoBehaviour {
         //gridResolutions.Add(new IntVector2(512, 512));
 
         visualizedMaze = new GameObject[1];
-        //recursiveBackTrack(0, 0);
-        //visualizeMaze();
-        //doTest();
-
     }
 
     public List<IntVector2> gridResolutions = new List<IntVector2>();
@@ -81,9 +76,6 @@ public class MazeGenerationScript : MonoBehaviour {
     {
         pathLengths.Sort();
         
-        //Begin testWriter
-        //---------------------------------------------------------------
-
         StreamWriter testWriter = new StreamWriter(testPath, true);
 
         int shortPathThreshhold = (int)(gridResolution.X * 0.1f);
@@ -117,9 +109,6 @@ public class MazeGenerationScript : MonoBehaviour {
         }
 
         testWriter.Close();
-        //End testWriter
-        //------------------------------------------------------------------
-
     }
     List<int> allCorridorLengths = new List<int>();
     List<int> allPathLengths = new List<int>();
@@ -129,8 +118,6 @@ public class MazeGenerationScript : MonoBehaviour {
 
     void writeStats(int mazeAlgorithm, IntVector2 gridResolution, string statisticsPath, float solveTime, int seed)
     {
-        //"Seed, Maze Type, Resolution, Solving Time, Solving Path Length, Tried Nodes, 1 Branches, 2 Branches, 3 Branches, 4 Branches";
-        //Begin Statwriting
         string statString = "";
         statString += seed;
         if (mazeAlgorithm == RECURSIVEDIVISION)
@@ -233,11 +220,8 @@ public class MazeGenerationScript : MonoBehaviour {
             allPathBranchDistribution[i] = 0;
         }
 
-        //allCorridorLengths.Sort();
-        //Get all paths of length X, when next length is NOT length X, divide gathered length Xs by number of Xs to get average.
         for (int i = 1; i < allCorridorLengths.Count; i++)
         {
-            //print("Corridor Length" + allCorridorLengths[i] + " Pathlengths: " + allPathLengths.Count);
             float average = (float)allCorridorLengths[i] / (float)allPathLengths.Count;
             statString += "," + average * 100 + "%";     
         }
@@ -249,10 +233,6 @@ public class MazeGenerationScript : MonoBehaviour {
 
 
         averageStringList.Add(statString);
-
-        //StreamWriter statWriter = new StreamWriter(statisticsPath, true);
-        //statWriter.WriteLine(statString);
-        //statWriter.Close();
     }
 
     string testFilePath = "Assets/Data/mazeTest.csv";
@@ -293,28 +273,17 @@ public class MazeGenerationScript : MonoBehaviour {
 
         string statString = generateStatHeaderString();
 
-
         corridorLengths = new int[biggestResolution];
         statWriter.WriteLine(statString);
         writer.Close();
         statWriter.Close();
-        // foreach (IntVector2 resolution in gridResolutions)
-        // {
-        //     string path = "Assets/Data/Test" + resolution.X + "x" + resolution.Z + ".csv";
-        //     File.WriteAllText(path, string.Empty);
-        //     StreamWriter writer = new StreamWriter(path, true);
-        //     writer.WriteLine("sep=,");
-        //     writer.Close();
-        // }
+
         //Create 1 maze, extract data, create new maze, extract data, etc...
         for (int j = 0; j < 3; j++)
         {
             pathLengths.Clear();
             foreach (IntVector2 resolution in gridResolutions)
             {
-                //0 == recursive Division
-                //
-                //
                 gridX = resolution.X;
                 gridZ = resolution.Z;
 
@@ -413,7 +382,6 @@ public class MazeGenerationScript : MonoBehaviour {
             gridZ = pGridZ;
             InitializeMazeCreationVariables();
             primsAlgorithm(0, 0);
-            //StartCoroutine(primsAlgorithmCoroutine(0, 0));
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
             if(solverRoutine != null)
@@ -1231,23 +1199,6 @@ public class MazeGenerationScript : MonoBehaviour {
         w = horizontal ? width : X + width - wx - 1;
         h = horizontal ? Z + height - wz - 1 : height;
         recursiveDivision(nx, nz, w, h, chooseOrientation(w, h));
-        //Make path in random spot in new wall.
-        //int makeDoorIdx = Random.Range(Z, splitZ);
-        //grid[splitX, makeDoorIdx].SouthWall = false;
-        //
-        ////Ready variables for recursive call
-        //int newX = splitX - X + 1;
-        //int newZ = Z;
-        //
-        //recursiveDivision(newX, newZ, width-newX, height);
-
-
-
-        //X = top left corner of quadrant
-        //Y = top left corner of quadrant
-        //width = abs(diff(newX, oldX))
-        //height = abs(diff(newY, oldY))
-        //recursiveDivision()
     }
 
     void primsAlgorithm(int startX, int startZ)
@@ -1323,7 +1274,6 @@ public class MazeGenerationScript : MonoBehaviour {
             }
             frontier.RemoveAt(CFI);
         }
-        
     }
 
     IEnumerator primsAlgorithmCoroutine(int startX, int startZ)

@@ -59,7 +59,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
     void Start() {
 
-
+        gridResolutions.Add(new IntVector2(16, 16));
         gridResolutions.Add(new IntVector2(32, 32));
         gridResolutions.Add(new IntVector2(64, 64));
         gridResolutions.Add(new IntVector2(128, 128));
@@ -131,7 +131,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
         statString += "," + solveTime;
 
-        statString += "," + ((float)solvedPath.Count / (float)triedPath.Count) * 100f + "%";
+        statString += "," + ((float)solvedPath.Count / (float)triedPath.Count) * 100f;
         statString += "," + solvedPath.Count;
         statString += "," + triedPath.Count;
 
@@ -161,7 +161,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
         for (int i = 0; i < 4; i++)
         {
-            statString += "," + ((float)pathBranchDistribution[i] / (float)numBranches) * 100f + "%";
+            statString += "," + ((float)pathBranchDistribution[i] / (float)numBranches) * 100f;
         }
 
         foreach (int item in pathLengths)
@@ -172,7 +172,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
         for (int i = 1; i < biggestResolution; i++)
         {
-            statString += "," + ((corridorLengths[i] / (float)pathLengths.Count) * 100) + "%";
+            statString += "," + ((corridorLengths[i] / (float)pathLengths.Count) * 100);
         }
 
         while(allCorridorLengths.Count < corridorLengths.Length)
@@ -209,21 +209,22 @@ public class MazeGenerationScript : MonoBehaviour {
         }
 
         statString += "," + totTime / (float)allSolvingTimes.Count;
+        allSolvingTimes.Clear();
 
-        statString += "," + ((((float)totalLengthOfSolvingPaths / ((float)numberOfTestsPerResolution)) / ((float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution))) * 100f + "%" ;
+        statString += "," + ((((float)totalLengthOfSolvingPaths / ((float)numberOfTestsPerResolution)) / ((float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution))) * 100f;
         statString += "," + (float)totalLengthOfSolvingPaths / (float)numberOfTestsPerResolution;
         statString += "," + (float)totalLengthOfTriedPaths / (float)numberOfTestsPerResolution;
 
         for (int i = 0; i < 4; i++)
         {
-            statString += "," + ((((float)allPathBranchDistribution[i] / (float)allNumBranches) * 100f) + "%");
+            statString += "," + ((((float)allPathBranchDistribution[i] / (float)allNumBranches) * 100f));
             allPathBranchDistribution[i] = 0;
         }
 
         for (int i = 1; i < allCorridorLengths.Count; i++)
         {
             float average = (float)allCorridorLengths[i] / (float)allPathLengths.Count;
-            statString += "," + average * 100 + "%";     
+            statString += "," + average * 100;     
         }
 
 
@@ -247,7 +248,7 @@ public class MazeGenerationScript : MonoBehaviour {
 
     string generateStatHeaderString()
     {
-        string statString = "Seed, Maze Type, Resolution, Solving Time, Solving Path Percentage, Solving Path Length, Tried Nodes, 1 Branches, 2 Branches, 3 Branches, 4 Branches";
+        string statString = "Seed, Maze Type, Resolution, Solving Time, Solving Path (%), Solving Path Nodes, Traversed Nodes, 1 Branches (%), 2 Branches (%), 3 Branches (%), 4 Branches (%)";
 
         foreach (IntVector2 res in gridResolutions)
         {
@@ -256,7 +257,7 @@ public class MazeGenerationScript : MonoBehaviour {
         }
         for (int i = 1; i < biggestResolution; i++)
         {
-            statString += "," + (i + 1) + " Length Corridor";
+            statString += "," + (i + 1) + " Length Corridor (%)";
         }
         return statString;
     }
@@ -593,6 +594,7 @@ public class MazeGenerationScript : MonoBehaviour {
         public List<IntVector2> directions;
         public List<IntVector2> solvingPath;
         public List<IntVector2> visitedPath;
+        public bool hasBeenAdded = false;
         public StackStateSolver(IntVector2 pos, List<IntVector2> directions, List<IntVector2> SolvingPath, List<IntVector2> VisitedPath)
         {
             this.pos = pos;
@@ -708,17 +710,10 @@ public class MazeGenerationScript : MonoBehaviour {
         lDirectionCheck.Add(SOUTHDir);
         lDirectionCheck.Add(WESTDir);
         lDirectionCheck.Add(EASTDir);
-        // List<direction> new_shit = VisitedPath.co
         
         Stack<StackStateSolver> solverStack = new Stack<StackStateSolver>();
 
-        //ref no difference
-
-        //is VisitedPath a pointer? Would explain why all paths taken is added. 
         List<IntVector2> localSolvingPath = new List<IntVector2>(SolvingPath);
-
-        localSolvingPath.Add(new IntVector2(X, Z));
-        VisitedPath.Add(new IntVector2(X, Z));
 
         shuffleDirections(lDirectionCheck);
 
@@ -727,8 +722,6 @@ public class MazeGenerationScript : MonoBehaviour {
         while (solverStack.Count > 0)
         {
             StackStateSolver tempStackState = solverStack.Pop();
-            solvedPath = tempStackState.solvingPath;
-            triedPath = tempStackState.visitedPath;
 
             if (tempStackState.pos.X == gridX - 1 && tempStackState.pos.Z == gridZ - 1)
             {
@@ -737,12 +730,20 @@ public class MazeGenerationScript : MonoBehaviour {
                 solvedPath = tempStackState.solvingPath;
                 triedPath = tempStackState.visitedPath;
                 //Solver finished. Convert from seconds to milliseconds
-                //return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
                 return new solverBack(true, (Time.realtimeSinceStartup - startSolveTime) * 1000f);
             }
             bool isValidPath = false;
 
             grid[tempStackState.pos.X, tempStackState.pos.Z].SolverVisited = true;
+
+            if (tempStackState.hasBeenAdded == false)
+            {
+                tempStackState.visitedPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
+                tempStackState.solvingPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
+                tempStackState.hasBeenAdded = true;
+            }
+            
+
             foreach (IntVector2 dir in tempStackState.directions)
             {
                 if (IsDirCoordValid(tempStackState.pos, dir))
@@ -781,11 +782,8 @@ public class MazeGenerationScript : MonoBehaviour {
                         {
                             solverStack.Push(tempStackState);
                             shuffleDirections(lDirectionCheck);
-                            List<IntVector2> lSolvingPath = new List<IntVector2>(tempStackState.solvingPath);
-                            List<IntVector2> lVisitedPath = tempStackState.visitedPath;
-                            lSolvingPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
-                            lVisitedPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
-                            solverStack.Push(new StackStateSolver(new IntVector2(tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z), lDirectionCheck, lSolvingPath, lVisitedPath));
+
+                            solverStack.Push(new StackStateSolver(new IntVector2(tempStackState.pos.X + dir.X, tempStackState.pos.Z + dir.Z), lDirectionCheck, tempStackState.solvingPath, tempStackState.visitedPath));
 
                             break;
                         }
@@ -1175,10 +1173,14 @@ public class MazeGenerationScript : MonoBehaviour {
                 if (dir == SOUTH)
                 {
                     grid[wx, wz].EastWall = true;
+                    if(wz + 1 < gridX)
+                        grid[wx, wz + 1].WestWall = true;
                 }
                 if (dir == EAST)
                 {
                     grid[wx, wz].SouthWall = true;
+                    if (wx + 1 < gridZ)
+                        grid[wx + 1, wz].NorthWall = true;
                 }
             }
             wx += dx;

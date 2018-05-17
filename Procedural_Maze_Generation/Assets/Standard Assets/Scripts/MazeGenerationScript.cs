@@ -4,7 +4,8 @@ using UnityEngine;
 using System.IO;
 
 
-public class MazeGenerationScript : MonoBehaviour {
+public class MazeGenerationScript : MonoBehaviour
+{
 
     float posOffset = 8.6f;
     public GameObject northWall;
@@ -57,8 +58,8 @@ public class MazeGenerationScript : MonoBehaviour {
         }
     }
 
-    void Start() {
-
+    void Start()
+    {
         gridResolutions.Add(new IntVector2(16, 16));
         gridResolutions.Add(new IntVector2(32, 32));
         gridResolutions.Add(new IntVector2(64, 64));
@@ -67,6 +68,39 @@ public class MazeGenerationScript : MonoBehaviour {
         //gridResolutions.Add(new IntVector2(512, 512));
 
         visualizedMaze = new GameObject[1];
+
+        foreach (GameObject item in visualizedMaze)
+        {
+            Destroy(item);
+        }
+
+        visualizedMaze = new GameObject[4 * pGridX * pGridZ];
+        gridX = pGridX;
+        gridZ = pGridZ;
+        InitializeMazeCreationVariables();
+        //InitializeRecursiveDivisionMazeCreationVariables();
+        //primsAlgorithm(0, 0);
+        StartCoroutine(recursiveBackTrackCoroutine(new IntVector2(0,0)));
+
+        //StartCoroutine(recursiveDivisionCoroutine(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ)));
+
+        //StartCoroutine(primsAlgorithmCoroutine(0, 0));
+
+        //recursiveBackTrack(new IntVector2(0, 0));
+        //recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
+
+        //visualizeMaze();
+        //startSolveTime = Time.realtimeSinceStartup;
+        //if (solverRoutine != null)
+        //    StopCoroutine(solverRoutine);
+        //
+        //if (isQuickSolving)
+        //    fastSolveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
+        //else
+        //    solverRoutine = StartCoroutine(solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>()));
+        //
+        //visualizeMazeSolver();
+
     }
 
     public List<IntVector2> gridResolutions = new List<IntVector2>();
@@ -75,7 +109,7 @@ public class MazeGenerationScript : MonoBehaviour {
     void writeDataToFile(List<int> pathLengths, float solveTime, IntVector2 gridResolution, int mazeAlgorithm, int seed, string testPath)
     {
         pathLengths.Sort();
-        
+
         StreamWriter testWriter = new StreamWriter(testPath, true);
 
         int shortPathThreshhold = (int)(gridResolution.X * 0.1f);
@@ -175,7 +209,7 @@ public class MazeGenerationScript : MonoBehaviour {
             statString += "," + ((corridorLengths[i] / (float)pathLengths.Count) * 100);
         }
 
-        while(allCorridorLengths.Count < corridorLengths.Length)
+        while (allCorridorLengths.Count < corridorLengths.Length)
             allCorridorLengths.Add(0);
 
         for (int i = 0; i < corridorLengths.Length; i++)
@@ -224,7 +258,7 @@ public class MazeGenerationScript : MonoBehaviour {
         for (int i = 1; i < allCorridorLengths.Count; i++)
         {
             float average = (float)allCorridorLengths[i] / (float)allPathLengths.Count;
-            statString += "," + average * 100;     
+            statString += "," + average * 100;
         }
 
 
@@ -301,13 +335,13 @@ public class MazeGenerationScript : MonoBehaviour {
                             recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
                             break;
                         case RECURSIVEBACKTRACKER:
-                            recursiveBackTrack(new IntVector2(0,0));
+                            recursiveBackTrack(new IntVector2(0, 0));
                             break;
                         case PRIMS:
                             primsAlgorithm(0, 0);
                             break;
                     }
-                    
+
 
                     startSolveTime = Time.realtimeSinceStartup;
                     solverBack solveTime = fastSolveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
@@ -345,7 +379,7 @@ public class MazeGenerationScript : MonoBehaviour {
         if (Input.GetKeyDown("k"))
         {
             doTest();
-        }        
+        }
         //recursive backtracker
         if (Input.GetKeyDown("q"))
         {
@@ -360,7 +394,7 @@ public class MazeGenerationScript : MonoBehaviour {
             recursiveBackTrack(new IntVector2(0, 0));
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            if(solverRoutine != null)
+            if (solverRoutine != null)
                 StopCoroutine(solverRoutine);
             if (isQuickSolving)
                 fastSolveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
@@ -385,7 +419,7 @@ public class MazeGenerationScript : MonoBehaviour {
             primsAlgorithm(0, 0);
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            if(solverRoutine != null)
+            if (solverRoutine != null)
                 StopCoroutine(solverRoutine);
 
             if (isQuickSolving)
@@ -409,10 +443,10 @@ public class MazeGenerationScript : MonoBehaviour {
             recursiveDivision(0, 0, gridX, gridZ, chooseOrientation(gridX, gridZ));
             visualizeMaze();
             startSolveTime = Time.realtimeSinceStartup;
-            if(solverRoutine != null)
+            if (solverRoutine != null)
                 StopCoroutine(solverRoutine);
 
-            if(isQuickSolving)
+            if (isQuickSolving)
                 fastSolveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>());
             else
                 solverRoutine = StartCoroutine(solveMazeReadyForVisualization(0, 0, new List<IntVector2>(), new List<IntVector2>()));
@@ -681,7 +715,7 @@ public class MazeGenerationScript : MonoBehaviour {
                                 isValidPath = true;
                             }
                         }
-                        if(isValidPath)
+                        if (isValidPath)
                         {
                             solverStack.Push(tempStackState);
                             shuffleDirections(lDirectionCheck);
@@ -710,7 +744,7 @@ public class MazeGenerationScript : MonoBehaviour {
         lDirectionCheck.Add(SOUTHDir);
         lDirectionCheck.Add(WESTDir);
         lDirectionCheck.Add(EASTDir);
-        
+
         Stack<StackStateSolver> solverStack = new Stack<StackStateSolver>();
 
         List<IntVector2> localSolvingPath = new List<IntVector2>(SolvingPath);
@@ -723,7 +757,8 @@ public class MazeGenerationScript : MonoBehaviour {
         {
             StackStateSolver tempStackState = solverStack.Pop();
 
-            if (tempStackState.pos.X == gridX - 1 && tempStackState.pos.Z == gridZ - 1)
+            //if (tempStackState.pos.X == gridX - 1 && tempStackState.pos.Z == gridZ - 1)
+            if (tempStackState.pos.X == gridX - 1 && tempStackState.pos.Z == 0)
             {
                 tempStackState.solvingPath.Add(tempStackState.pos);
                 tempStackState.visitedPath.Add(tempStackState.pos);
@@ -742,7 +777,7 @@ public class MazeGenerationScript : MonoBehaviour {
                 tempStackState.solvingPath.Add(new IntVector2(tempStackState.pos.X, tempStackState.pos.Z));
                 tempStackState.hasBeenAdded = true;
             }
-            
+
 
             foreach (IntVector2 dir in tempStackState.directions)
             {
@@ -920,7 +955,7 @@ public class MazeGenerationScript : MonoBehaviour {
                                 isValidPath = true;
                             }
                         }
-                        if(isValidPath)
+                        if (isValidPath)
                         {
                             recStack.Push(tempState);
                             shuffleDirections(directionCheck);
@@ -991,29 +1026,61 @@ public class MazeGenerationScript : MonoBehaviour {
         foreach (GameObject obj in visualizedTriedCubes)
             DestroyImmediate(obj);
 
-        Vector3 aids = new Vector3();
+        Vector3 tempVec3 = new Vector3();
         for (int i = 0; i < grid.GetLength(0); i++)
         {
             for (int j = 0; j < grid.GetLength(1); j++)
             {
-                aids.x = i * posOffset;
-                aids.z = j * posOffset;
+                tempVec3.x = i * posOffset;
+                tempVec3.z = j * posOffset;
 
                 if (grid[i, j].Visited)
-                    visualizedSolverCubes.Add(Instantiate(redCube, aids, Quaternion.identity));
+                    visualizedSolverCubes.Add(Instantiate(redCube, tempVec3, Quaternion.identity));
             }
         }
 
         foreach (IntVector2 item in frontier)
         {
-            aids.x = posOffset * item.X;
-            aids.z = posOffset * item.Z;
-            visualizedSolverCubes.Add(Instantiate(greenCube, aids, Quaternion.identity));
+            tempVec3.x = posOffset * item.X;
+            tempVec3.z = posOffset * item.Z;
+            visualizedSolverCubes.Add(Instantiate(greenCube, tempVec3, Quaternion.identity));
         }
 
-        aids.x = posOffset * currFrontier.X;
-        aids.z = posOffset * currFrontier.Z;
-        visualizedSolverCubes.Add(Instantiate(pinkCube, aids, Quaternion.identity));
+        tempVec3.x = posOffset * currFrontier.X;
+        tempVec3.z = posOffset * currFrontier.Z;
+        visualizedSolverCubes.Add(Instantiate(pinkCube, tempVec3, Quaternion.identity));
+    }
+
+    void visualizeRecBackSolver(IntVector2 currSpot, List<IntVector2> neighbours)
+    {
+        foreach (GameObject obj in visualizedSolverCubes)
+            DestroyImmediate(obj);
+        foreach (GameObject obj in visualizedTriedCubes)
+            DestroyImmediate(obj);
+
+        Vector3 tempVec3 = new Vector3();
+        for (int i = 0; i < grid.GetLength(0); i++)
+        {
+            for (int j = 0; j < grid.GetLength(1); j++)
+            {
+                tempVec3.x = i * posOffset;
+                tempVec3.z = j * posOffset;
+
+                if (grid[i, j].Visited)
+                    visualizedSolverCubes.Add(Instantiate(redCube, tempVec3, Quaternion.identity));
+            }
+        }
+
+        foreach (IntVector2 item in neighbours)
+        {
+            tempVec3.x = posOffset * item.X;
+            tempVec3.z = posOffset * item.Z;
+            visualizedSolverCubes.Add(Instantiate(greenCube, tempVec3, Quaternion.identity));
+        }
+
+        tempVec3.x = posOffset * currSpot.X;
+        tempVec3.z = posOffset * currSpot.Z;
+        visualizedSolverCubes.Add(Instantiate(pinkCube, tempVec3, Quaternion.identity));
     }
 
     void visualizeMazeSolver()
@@ -1173,7 +1240,7 @@ public class MazeGenerationScript : MonoBehaviour {
                 if (dir == SOUTH)
                 {
                     grid[wx, wz].EastWall = true;
-                    if(wz + 1 < gridX)
+                    if (wz + 1 < gridX)
                         grid[wx, wz + 1].WestWall = true;
                 }
                 if (dir == EAST)
@@ -1201,6 +1268,192 @@ public class MazeGenerationScript : MonoBehaviour {
         w = horizontal ? width : X + width - wx - 1;
         h = horizontal ? Z + height - wz - 1 : height;
         recursiveDivision(nx, nz, w, h, chooseOrientation(w, h));
+    }
+
+    IEnumerator recursiveDivisionCoroutine(int X, int Z, int width, int height, int orientation)
+    {
+        Stack<recDivState> recDivStack = new Stack<recDivState>();
+        recDivStack.Push(new recDivState(X, Z, width, height, orientation));
+
+        while (recDivStack.Count > 0)
+        {
+            recDivState currState = recDivStack.Pop();
+
+            if (currState.w < 2 || currState.h < 2)
+            {
+
+            }
+            else
+            {
+                bool horizontal = (currState.orientation == HORIZONTAL) ? true : false;
+                if (!currState.processedOnce)
+                {
+                    int wx = currState.nx + (horizontal ? 0 : Random.Range(0, currState.w - 2));
+                    int wz = currState.nz + (horizontal ? Random.Range(0, currState.h - 2) : 0);
+
+                    int px = wx + (horizontal ? Random.Range(0, currState.w) : 0);
+                    int pz = wz + (horizontal ? 0 : Random.Range(0, currState.h));
+
+                    int dx = horizontal ? 1 : 0;
+                    int dz = horizontal ? 0 : 1;
+
+                    int length = horizontal ? currState.w : currState.h;
+
+                    int dir = horizontal ? SOUTH : EAST;
+
+                
+                    for (int i = 0; i < length; i++)
+                    {
+                        if (wx != px || wz != pz)
+                        {
+                            if (dir == SOUTH)
+                            {
+                                grid[wx, wz].EastWall = true;
+                                if (wz + 1 < gridX)
+                                    grid[wx, wz + 1].WestWall = true;
+                            }
+                            if (dir == EAST)
+                            {
+                                grid[wx, wz].SouthWall = true;
+                                if (wx + 1 < gridZ)
+                                    grid[wx + 1, wz].NorthWall = true;
+                            }
+                        }
+                        wx += dx;
+                        wz += dz;
+                    }
+                    currState.wx = wx;
+                    currState.wz = wz;
+                }
+
+                int nx = currState.nx;
+                int nz = currState.nz;
+
+                
+                //yield return new WaitForSeconds(0.0f);
+
+                int w = horizontal ? currState.w : currState.wx - currState.nx + 1;
+                int h = horizontal ? currState.wz - currState.nz + 1 : currState.h;
+
+                //visualizeMaze();
+                if (currState.processedOnce)
+                {
+                    visualizeMaze();
+                    yield return new WaitForSeconds(0f);
+
+                    nx = horizontal ? currState.nx : currState.wx + 1;
+                    nz = horizontal ? currState.wz + 1 : currState.nz;
+
+                    w = horizontal ? currState.w : currState.nx + currState.w - currState.wx - 1;
+                    h = horizontal ? currState.nz + currState.h - currState.wz - 1 : currState.h;
+
+                    recDivStack.Push(new recDivState(nx, nz, w, h, chooseOrientation(w, h)));
+                    //StartCoroutine(recursiveDivisionCoroutine(nx, nz, w, h, chooseOrientation(w, h)));
+                }
+
+                //First this is to be executed... But not necessarily the other directly after. Remember recursive. 
+                if (!currState.processedOnce)
+                {
+                    currState.processedOnce = true;
+                    recDivStack.Push(currState);
+
+                    recDivStack.Push(new recDivState(nx, nz, w, h, chooseOrientation(w, h)));
+
+                    visualizeMaze();
+                    yield return new WaitForSeconds(0f);
+                    //StartCoroutine(recursiveDivisionCoroutine(nx, nz, w, h, chooseOrientation(w, h)));
+                }
+                    
+                
+            }
+        }
+
+        //if (width < 2 || height < 2)
+        //    yield return null;
+
+        //bool horizontal = (orientation == HORIZONTAL) ? true : false;
+
+        //int wx = X + (horizontal ? 0 : Random.Range(0, width - 2));
+        //int wz = Z + (horizontal ? Random.Range(0, height - 2) : 0);
+
+        //int px = wx + (horizontal ? Random.Range(0, width) : 0);
+        //int pz = wz + (horizontal ? 0 : Random.Range(0, height));
+
+        //int dx = horizontal ? 1 : 0;
+        //int dz = horizontal ? 0 : 1;
+
+        //int length = horizontal ? width : height;
+
+        //int dir = horizontal ? SOUTH : EAST;
+
+        //for (int i = 0; i < length; i++)
+        //{
+        //    if (wx != px || wz != pz)
+        //    {
+        //        if (dir == SOUTH)
+        //        {
+        //            grid[wx, wz].EastWall = true;
+        //            if (wz + 1 < gridX)
+        //                grid[wx, wz + 1].WestWall = true;
+        //        }
+        //        if (dir == EAST)
+        //        {
+        //            grid[wx, wz].SouthWall = true;
+        //            if (wx + 1 < gridZ)
+        //                grid[wx + 1, wz].NorthWall = true;
+        //        }
+        //    }
+        //    wx += dx;
+        //    wz += dz;
+        //}
+
+        //int nx = X;
+        //int nz = Z;
+
+        //visualizeMaze();
+        //yield return new WaitForSeconds(1f);
+        ////yield return new WaitForSeconds(0.0f);
+
+        //int w = horizontal ? width : wx - X + 1;
+        //int h = horizontal ? wz - Z + 1 : height;
+
+        //StartCoroutine(recursiveDivisionCoroutine(nx, nz, w, h, chooseOrientation(w, h)));
+
+        ////visualizeMaze();
+
+        //visualizeMaze();
+        //yield return new WaitForSeconds(1f);
+
+        //nx = horizontal ? X : wx + 1;
+        //nz = horizontal ? wz + 1 : Z;
+
+        //w = horizontal ? width : X + width - wx - 1;
+        //h = horizontal ? Z + height - wz - 1 : height;
+        //StartCoroutine(recursiveDivisionCoroutine(nx, nz, w, h, chooseOrientation(w, h)));
+
+
+    }
+
+    class recDivState
+    {
+        public bool processedOnce = false;
+        public int nx;
+        public int nz;
+        public int w;
+        public int h;
+        public int orientation;
+
+        public int wx;
+        public int wz;
+
+        public recDivState(int nx, int nz, int w, int h, int orientation)
+        {
+            this.nx = nx;
+            this.nz = nz;
+            this.w = w;
+            this.h = h;
+            this.orientation = orientation;
+        }
     }
 
     void primsAlgorithm(int startX, int startZ)
@@ -1294,7 +1547,7 @@ public class MazeGenerationScript : MonoBehaviour {
         directionList.Add(SOUTHDir);
         directionList.Add(WESTDir);
         directionList.Add(EASTDir);
-        
+
         //frontier.Add(new mazeLoc(startX, startZ));
         inCells.Add(new mazeLoc(startX, startZ));
         grid[startX, startZ].Visited = true;
@@ -1312,7 +1565,7 @@ public class MazeGenerationScript : MonoBehaviour {
             }
         }
 
-        visualizePrimSolver(frontier, new IntVector2(0,0));
+        visualizePrimSolver(frontier, new IntVector2(0, 0));
 
         while (frontier.Count > 0)
         {
@@ -1325,7 +1578,7 @@ public class MazeGenerationScript : MonoBehaviour {
             //frontier.Remove(frontier[CFI]);
 
             foreach (IntVector2 dir in directionList)
-            { 
+            {
                 //Add valid adjacent cells to frontier. 
                 if (IsDirCoordValid(CFC, dir))
                 {
@@ -1353,13 +1606,13 @@ public class MazeGenerationScript : MonoBehaviour {
             frontier.RemoveAt(CFI);
             //if (frontier.Remove(CFC))
             //    print(CFC.X + " " + CFC.Z);
-            
+
             visualizeMaze();
             visualizePrimSolver(frontier, CFC);
 
-            yield return new WaitForSeconds(0.00001f);
-            
-                
+            yield return new WaitForSeconds(0.0f);
+
+
         }
         yield return null;
     }
@@ -1445,38 +1698,81 @@ public class MazeGenerationScript : MonoBehaviour {
                 }
             }
         }
+    }
+    IEnumerator recursiveBackTrackCoroutine(IntVector2 pos)
+    {
+        List<IntVector2> directionList = new List<IntVector2>();
+        //initializing list of directions 
+        directionList.Add(NORTHDir);
+        directionList.Add(SOUTHDir);
+        directionList.Add(WESTDir);
+        directionList.Add(EASTDir);
 
-        //the direction that got cut must be last in the stack! Or else it will not be depth-first!
+        shuffleDirections(directionList);
 
+        Stack<stackState> theStack = new Stack<stackState>();
+        theStack.Push(new stackState(pos, directionList));
+        //set current cell as visited
+        grid[pos.X, pos.Z].Visited = true;
 
-        //Now loop through neighbours. If found neighbour, call self, with neighbours position
-        //foreach (IntVector2 dir in directionList)
-        //{
-        //    if (IsDirCoordValid(new IntVector2(pos.X, pos.Z), dir) && grid[pos.X + dir.X, pos.Z + dir.Z].Visited == false)
-        //    {
-        //        if (dir == NORTHDir)
-        //        {
-        //            grid[pos.X, pos.Z].NorthWall = false;
-        //            grid[pos.X + dir.X, pos.Z + dir.Z].SouthWall = false;
-        //        }
-        //        if (dir == SOUTHDir)
-        //        {
-        //            grid[pos.X, pos.Z].SouthWall = false;
-        //            grid[pos.X + dir.X, pos.Z + dir.Z].NorthWall = false;
-        //        }
-        //        if (dir == WESTDir)
-        //        {
-        //            grid[pos.X, pos.Z].WestWall = false;
-        //            grid[pos.X + dir.X, pos.Z + dir.Z].EastWall = false;
-        //        }
-        //        if (dir == EASTDir)
-        //        {
-        //            grid[pos.X, pos.Z].EastWall = false;
-        //            grid[pos.X + dir.X, pos.Z + dir.Z].WestWall = false;
-        //        }
-        //        //theStack.Push(new IntVector2(gridXPos + dir.X, gridZPos + dir.Z));
-        //        recursiveBackTrack(new IntVector2(pos.X + dir.X, pos.Z + dir.Z));
-        //    }
-        //}
+        while (theStack.Count > 0)
+        {
+            stackState tempState = theStack.Pop();
+
+            IntVector2 po = tempState.pos;
+            grid[po.X, po.Z].Visited = true;
+            List<IntVector2> monkey = new List<IntVector2>();
+
+            foreach (IntVector2 dir in tempState.directions)
+            {
+                if (IsDirCoordValid(new IntVector2(po.X, po.Z), dir) && grid[po.X + dir.X, po.Z + dir.Z].Visited == false)
+                {
+                    monkey.Add(new IntVector2(po.X + dir.X, po.Z + dir.Z));
+                }
+            }
+
+            //Now loop through neighbours. If found neighbour, call self, with neighbours position
+            foreach (IntVector2 dir in tempState.directions)
+            {
+                Stack<IntVector2> tempStack = new Stack<IntVector2>();
+                if (IsDirCoordValid(new IntVector2(po.X, po.Z), dir) && grid[po.X + dir.X, po.Z + dir.Z].Visited == false)
+                {
+                    
+                    if (dir == NORTHDir)
+                    {
+                        grid[po.X, po.Z].NorthWall = false;
+                        grid[po.X + dir.X, po.Z + dir.Z].SouthWall = false;
+                    }
+                    if (dir == SOUTHDir)
+                    {
+                        grid[po.X, po.Z].SouthWall = false;
+                        grid[po.X + dir.X, po.Z + dir.Z].NorthWall = false;
+                    }
+                    if (dir == WESTDir)
+                    {
+                        grid[po.X, po.Z].WestWall = false;
+                        grid[po.X + dir.X, po.Z + dir.Z].EastWall = false;
+                    }
+                    if (dir == EASTDir)
+                    {
+                        grid[po.X, po.Z].EastWall = false;
+                        grid[po.X + dir.X, po.Z + dir.Z].WestWall = false;
+                    }
+
+                    theStack.Push(tempState);
+                    List<IntVector2> tempDirs = new List<IntVector2>(directionList);
+                    shuffleDirections(tempDirs);
+                    grid[po.X + dir.X, po.Z + dir.Z].Visited = true;
+                    theStack.Push(new stackState(new IntVector2(po.X + dir.X, po.Z + dir.Z), tempDirs));
+
+                    break;
+                }
+            }
+            visualizeMaze();
+            visualizeRecBackSolver(po, monkey);
+
+            yield return new WaitForSeconds(0.0f);
+        }
+        yield return null;
     }
 }

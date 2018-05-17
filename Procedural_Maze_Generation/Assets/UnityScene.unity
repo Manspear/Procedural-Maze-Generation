@@ -128,7 +128,7 @@ GameObject:
   - component: {fileID: 147358080}
   m_Layer: 0
   m_Name: Main Camera
-  m_TagString: MainCamera
+  m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -244,7 +244,7 @@ GameObject:
   - component: {fileID: 1469170052}
   m_Layer: 0
   m_Name: Camera
-  m_TagString: Untagged
+  m_TagString: MainCamera
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -266,9 +266,9 @@ MonoBehaviour:
   eastWall: {fileID: 100002, guid: 8f9c69ee5d889334885f9176ac55ea5a, type: 3}
   redCube: {fileID: 100002, guid: 6eacfa334d88fcd42ae05082885c6a6a, type: 3}
   greenCube: {fileID: 100000, guid: 99b8a64cedb9cdc42ae05fccca0a2dd1, type: 3}
-  pinkCube: {fileID: 1164411553477318, guid: dfc06090eac1c7845a73355065a96884, type: 2}
-  pGridX: 32
-  pGridZ: 32
+  pinkCube: {fileID: 1509021147810974, guid: 23a0974bb3c476345a53514afeba10e2, type: 2}
+  pGridX: 16
+  pGridZ: 16
   seedNumber: 0
   randomSeed: 1
   numberOfTestsPerResolution: 100
@@ -306,7 +306,7 @@ Camera:
   far clip plane: 1000
   field of view: 60
   orthographic: 1
-  orthographic size: 154
+  orthographic size: 80
   m_Depth: 0
   m_CullingMask:
     serializedVersion: 2
@@ -329,7 +329,7 @@ Transform:
   m_PrefabInternal: {fileID: 0}
   m_GameObject: {fileID: 1469170051}
   m_LocalRotation: {x: 0.7071068, y: 0, z: 0, w: 0.7071068}
-  m_LocalPosition: {x: 128.6, y: 169.8, z: 128.6}
+  m_LocalPosition: {x: 74.6, y: 169.8, z: 66.5}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
@@ -471,7 +471,7 @@ Prefab:
       objectReference: {fileID: 0}
     - target: {fileID: 4487942662170554, guid: 3229c430fa3265c4c87c8914c86ea763, type: 2}
       propertyPath: m_LocalPosition.y
-      value: 0
+      value: -11.05
       objectReference: {fileID: 0}
     - target: {fileID: 4487942662170554, guid: 3229c430fa3265c4c87c8914c86ea763, type: 2}
       propertyPath: m_LocalPosition.z
